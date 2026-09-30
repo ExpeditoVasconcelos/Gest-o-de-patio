@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  gestao-patio:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: jbcunha-gestao-patio
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - GLPI_ENABLED=false
+      # - GLPI_URL=https://glpi.suaempresa.com.br/apirest.php
+      # - GLPI_APP_TOKEN=seu_app_token_aqui
+      # - GLPI_USER_TOKEN=seu_user_token_aqui
+    volumes:
+      - ./api-gateway/data:/app/api-gateway/data
+      - ./web-app/uploads:/app/web-app/uploads
+    networks:
+      - jbcunha-net
+
+networks:
+  jbcunha-net:
+    driver: bridge

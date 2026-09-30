@@ -1,0 +1,78 @@
+{
+  "versao": "1.0",
+  "atualizado_em": "2026-09-28T11:34:28.148Z",
+  "usuarios": [
+    {
+      "id": 1,
+      "username": "manuel",
+      "nome": "Manuel",
+      "senha_hash": "10ca7c77e88c841a073383f57e0f1f6b:024b7bef19fe025938b4b762f2b64a9f99eeac41526f4519df9f0a730f2ff5df0f871e57b429d7e8af411f9b0e5eecc0e61e3bdd67e99560e738036772340c34",
+      "role": "admin",
+      "empresa_vinculada": null,
+      "ativo": true,
+      "criado_em": "2026-09-26T16:36:49.325Z",
+      "atualizado_em": "2026-09-26T16:36:49.325Z",
+      "ultimo_login": "2026-09-26T20:30:54.237Z"
+    },
+    {
+      "id": 2,
+      "username": "expedito",
+      "nome": "Expedito",
+      "senha_hash": "10ca7c77e88c841a073383f57e0f1f6b:024b7bef19fe025938b4b762f2b64a9f99eeac41526f4519df9f0a730f2ff5df0f871e57b429d7e8af411f9b0e5eecc0e61e3bdd67e99560e738036772340c34",
+      "role": "admin",
+      "empresa_vinculada": null,
+      "ativo": true,
+      "criado_em": "2026-09-26T16:36:49.325Z",
+      "atualizado_em": "2026-09-26T16:36:49.325Z",
+      "ultimo_login": "2026-09-28T11:34:28.147Z"
+    },
+    {
+      "id": 3,
+      "username": "carlos_tec",
+      "nome": "Carlos Mecânico",
+      "senha_hash": "0d8232858c1d37db7d6bbf23b9b8b0a1:215c9b4c56e8febbb3b4bf80b4fa4af9f98cddeb2752c511c7ba9ec456ca84f9abc22e635f5dcdd71f29b36ec5f0ef1715e71ecdbb26eefc0cf500a1015e71b5",
+      "role": "usuario",
+      "empresa_vinculada": null,
+      "ativo": true,
+      "criado_em": "2026-09-26T16:43:42.188Z",
+      "atualizado_em": "2026-09-26T16:43:42.188Z",
+      "ultimo_login": "2026-09-26T16:43:42.435Z"
+    },
+    {
+      "id": 4,
+      "username": "cliente_abc",
+      "nome": "Gestor ABC Mineração",
+      "senha_hash": "88e63bb4455e9547756686a55682ad47:32baf9feaa4a0b2720d0af7ebd62f8c6c655b87cc30c49100057a4169b6af61154a2d4da73cb4620f01328e3e71d6e15880a9b90897bb607afc6278d7191e7df",
+      "role": "cliente",
+      "empresa_vinculada": "Empresa ABC Mineração",
+      "ativo": true,
+      "criado_em": "2026-09-26T16:43:42.295Z",
+      "atualizado_em": "2026-09-26T16:43:42.295Z",
+      "ultimo_login": "2026-09-26T16:43:42.588Z"
+    },
+    {
+      "id": 5,
+      "username": "operador_1790441945823",
+      "nome": "Operador Teste 1790441945823",
+      "senha_hash": "bde86a86dd9a87e6600e42ac08e0e218:f3f8338e822375b6840a3f44f8d148ed69eb53b2f32bcdbf029378ab1c32a4e569fd5700ef39c549fcffbfb936fc402f3f76743c1b9abe5e775ed1067e8c63dd",
+      "role": "usuario",
+      "empresa_vinculada": null,
+      "ativo": true,
+      "criado_em": "2026-09-26T16:59:05.913Z",
+      "atualizado_em": "2026-09-26T16:59:05.913Z",
+      "ultimo_login": "2026-09-26T16:59:06.139Z"
+    },
+    {
+      "id": 6,
+      "username": "cliente_vale_1790441945823",
+      "nome": "Cliente Vale 1790441945823",
+      "senha_hash": "55c47b5f589d0c3c258a705ad78f10c8:0a71903924084b6801cbfef3d5b432fcd7c7106af39b024114740363410fa78b8a7f11b4912d6db3e67e783ca4784ccee8955f220008bccdd32a5465de293193",
+      "role": "cliente",
+      "empresa_vinculada": "Vale Logística",
+      "ativo": true,
+      "criado_em": "2026-09-26T16:59:06.025Z",
+      "atualizado_em": "2026-09-26T16:59:06.025Z",
+      "ultimo_login": "2026-09-26T16:59:06.224Z"
+    }
+  ]
+}

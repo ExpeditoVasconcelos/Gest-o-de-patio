@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Central de Operações JB Cunha — Controle operacional da oficina de manutenção pesada e serviços.">
+  <script>
+    if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) && !location.search.includes('nomobile')) {
+      location.replace('/mobile');
+    }
+  </script>
+  <title>JB Cunha — Central de Operações</title>
+  <link rel="manifest" href="/manifest.json">
+  <link rel="stylesheet" href="/css/style.css?v=4.0">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+</head>
+<body>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       HEADER — BARRA SUPERIOR
+       ═══════════════════════════════════════════════════════════ -->
+  <header class="top-nav" id="main-header">
+    <div class="top-nav-inner">
+      <!-- Marca -->
+      <div class="brand" onclick="App.navegar('painel')" role="button" tabindex="0">
+        <div class="brand-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"/>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/>
+          </svg>
+        </div>
+        <div class="brand-text">
+          <span class="brand-title">JB CUNHA</span>
+          <span class="brand-sub">Operações & Oficina</span>
+        </div>
+      </div>
+
+      <!-- Contadores rápidos -->
+      <div class="header-counters">
+        <div class="hcount" id="hc-patio" onclick="App.abrirAbaPatio()" style="cursor:pointer" title="Ver equipamentos no pátio">
+          <span class="hcount-num" id="counter-patio">—</span>
+          <span class="hcount-label">No pátio</span>
+        </div>
+        <div class="hcount orange" id="hc-andamento" onclick="App.abrirAbaPatio(); App.filtrarPor('em_execucao');" style="cursor:pointer" title="Filtrar em execução">
+          <span class="hcount-num" id="counter-andamento">—</span>
+          <span class="hcount-label">Em andamento</span>
+        </div>
+        <div class="hcount amber" id="hc-aguardando" onclick="App.abrirAbaPatio(); App.filtrarPor('aguardando_peca');" style="cursor:pointer" title="Filtrar aguardando peça">
+          <span class="hcount-num" id="counter-aguardando">—</span>
+          <span class="hcount-label">Aguardando</span>
+        </div>
+        <div class="hcount green" id="hc-prontos" onclick="App.abrirAbaPatio(); App.filtrarPor('pronto');" style="cursor:pointer" title="Filtrar prontos">
+          <span class="hcount-num" id="counter-prontos">—</span>
+          <span class="hcount-label">Prontos</span>
+        </div>
+        <div class="hcount red" id="hc-atrasados" onclick="App.abrirAbaPatio(); App.filtrarPor('atrasados');" style="cursor:pointer" title="Filtrar atrasados">
+          <span class="hcount-num" id="counter-atrasados">—</span>
+          <span class="hcount-label">Atrasados</span>
+        </div>
+        <div class="hcount slate" id="hc-entregues" onclick="App.abrirAbaEntregues()" style="cursor:pointer" title="Acessar aba de veículos entregues">
+          <span class="hcount-num" id="counter-entregues">—</span>
+          <span class="hcount-label">Entregues</span>
+        </div>
+      </div>
+
+      <!-- Ações do Cabeçalho -->
+      <div style="display:flex;align-items:center;gap:10px">
+        <div class="user-auth-pill" id="user-auth-pill" title="Usuário autenticado">
+          <div class="user-auth-avatar">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          </div>
+          <div class="user-auth-info">
+            <span class="user-auth-name" id="user-auth-name">Conectando...</span>
+            <span class="user-auth-role" id="user-auth-role">—</span>
+          </div>
+          <button class="btn-logout" onclick="App.fazerLogout()" title="Sair do sistema">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          </button>
+        </div>
+        <div class="clock-display" id="header-clock">--:--</div>
+        <button id="btn-theme" class="btn-icon" onclick="App.toggleTema()" title="Alternar tema" aria-label="Alternar tema">
+          <svg id="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>
+          </svg>
+          <svg id="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none">
+            <path d="M12 3a6 6 0 0 0 9 9 9 0 1 1-9-9Z"/>
+          </svg>
+        </button>
+        <button class="btn btn-ghost" onclick="App.abrirModoTv()" id="btn-tv">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/>
+          </svg>
+          <span>Modo TV</span>
+        </button>
+        <button class="btn btn-primary admin-only usuario-only" onclick="App.navegar('novo')" id="btn-novo">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+          </svg>
+          <span>Novo Atendimento</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ══ BARRA DE NAVEGAÇÃO ENTRE ABAS ══ -->
+  <div class="workspace-tabs-bar" id="main-tabs-bar">
+    <div class="workspace-tabs-group">
+      <button class="ws-tab active" id="ws-tab-patio" onclick="App.abrirAbaPatio()" title="Visualizar equipamentos ativos no pátio da oficina">
+        <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 3v18"/><path d="M3 9h18"/></svg>
+        <span id="lbl-tab-patio">Pátio Operacional</span>
+        <span class="ws-tab-badge" id="ws-badge-patio">—</span>
+      </button>
+      <button class="ws-tab tab-entregues" id="ws-tab-entregues" onclick="App.abrirAbaEntregues()" title="Acessar aba de veículos entregues ao cliente">
+        <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+        <span>Veículos Entregues</span>
+        <span class="ws-tab-badge badge-slate" id="ws-badge-entregues">—</span>
+      </button>
+      <button class="ws-tab tab-compras admin-only" id="ws-tab-compras" onclick="App.abrirAbaCompras()" title="Solicitações de compra direta de insumos (Exclusivo Administradores)">
+        <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+        <span>Compras Diretas</span>
+        <span class="ws-tab-badge badge-red" id="ws-badge-compras" style="display:none">0</span>
+      </button>
+      <button class="ws-tab tab-usuarios admin-only" id="ws-tab-usuarios" onclick="App.abrirAbaUsuarios()" title="Gerenciamento de usuários e permissões (Exclusivo Administradores)">
+        <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        <span>Usuários</span>
+      </button>
+    </div>
+    <div class="workspace-tab-info" id="ws-tab-status-txt">
+      <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+      <span id="txt-status-aba">Exibindo equipamentos em atendimento no pátio da oficina</span>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       CONTEÚDO PRINCIPAL
+       ═══════════════════════════════════════════════════════════ -->
+  <main class="main-content">
+
+    <!-- ══════════════════════════════════════════════
+         VIEW: PAINEL OPERACIONAL COM SLIDES
+         ══════════════════════════════════════════════ -->
+    <section id="view-painel" class="view active">
+
+      <!-- Barra Superior de Controle de Telas / Slides -->
+      <div class="slides-nav-bar" id="slides-nav-bar">
+        <div class="slides-tabs-wrap" id="slides-tabs">
+          <!-- Preenchido por JS: [ Tela 1: Pátio Geral ] [ Tela 2: PIPA / PC 40 ] ... -->
+        </div>
+        <div class="slides-controls">
+          <button class="slide-nav-btn" onclick="App.slideAnterior()" title="Tela Anterior (Seta Esquerda)" aria-label="Tela Anterior">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+          </button>
+          <button class="slide-nav-btn slide-play-btn" id="btn-slide-autoplay" onclick="App.toggleRotacaoSlides()" title="Pausar / Retomar Rotação Automática (Espaço)">
+            <span id="slide-play-icon"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg></span>
+            <span id="slide-play-text">Auto (12s)</span>
+          </button>
+          <button class="slide-nav-btn" onclick="App.proximoSlide()" title="Próxima Tela (Seta Direita)" aria-label="Próxima Tela">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+          </button>
+        </div>
+        <div class="slide-timer-progress">
+          <div class="slide-timer-fill" id="slide-timer-fill"></div>
+        </div>
+      </div>
+
+      <!-- Slide 1: Visão Geral do Pátio (Tabela Consolidada) -->
+      <div class="painel-slide-pane" id="painel-slide-geral">
+        <!-- Filtros e busca -->
+        <div class="painel-toolbar">
+          <div class="search-wrap">
+            <svg class="search-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
+            </svg>
+            <input type="text" id="search-input" class="search-input" placeholder="Buscar por tag, equipamento, empresa, responsável...">
+          </div>
+          <div class="filter-chips" role="group" aria-label="Filtros de estado">
+            <button class="chip active" data-filtro="Patio" id="chip-patio">Todos no pátio</button>
+            <button class="chip" data-filtro="em_execucao">Em execução</button>
+            <button class="chip" data-filtro="aguardando_peca">Ag. peça</button>
+            <button class="chip" data-filtro="em_diagnostico">Diagnóstico</button>
+            <button class="chip" data-filtro="pronto">Prontos</button>
+            <button class="chip chip-entregues" data-filtro="Entregues" id="chip-entregues">
+              <span>Entregues</span>
+              <span class="chip-badge" id="chip-count-entregues">0</span>
+            </button>
+          </div>
+          <button class="btn btn-sm btn-ghost" onclick="App.carregarPainel()" title="Atualizar" aria-label="Atualizar painel">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/>
+              <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+            </svg>
+            <span>Atualizar</span>
+          </button>
+        </div>
+
+        <!-- Tabela operacional -->
+        <div class="op-table-wrap">
+          <table class="op-table" id="op-table">
+            <thead>
+              <tr>
+                <th class="col-tag">Tag</th>
+                <th class="col-empresa">Cliente</th>
+                <th class="col-equip">Equipamento</th>
+                <th class="col-servico">Serviços em Execução</th>
+                <th class="col-resp">Responsável</th>
+                <th class="col-local">Local</th>
+                <th class="col-estado">Estado</th>
+                <th class="col-prog">Prog.</th>
+                <th class="col-atu">Atualização</th>
+                <th class="col-acoes" style="text-align:center;width:60px">Ações</th>
+              </tr>
+            </thead>
+            <tbody id="op-table-body">
+              <!-- Preenchido por JS -->
+            </tbody>
+          </table>
+          <div id="painel-empty" class="empty-state" style="display:none">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+            <p>Nenhum equipamento encontrado</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Slides 2, 3, etc.: Cards Detalhados de Avanço a Fundo por Máquina e Serviços -->
+      <div class="painel-slide-pane" id="painel-slide-detalhes" style="display:none">
+        <div class="slide-detalhe-header">
+          <div>
+            <div class="slide-detalhe-title" id="slide-detalhes-titulo">Avanço Detalhado das Atividades</div>
+            <div class="slide-detalhe-sub" id="slide-detalhes-sub">Serviços e checklist de atividades em tempo real</div>
+          </div>
+        </div>
+        <div class="slide-machines-grid" id="slide-machines-grid">
+          <!-- Cards com visualização a fundo gerados dinamicamente -->
+        </div>
+      </div>
+    </section>
+
+    <!-- ══════════════════════════════════════════════
+         VIEW: DETALHE DO EQUIPAMENTO
+         ══════════════════════════════════════════════ -->
+    <section id="view-detalhe" class="view" style="display:none">
+      <div class="detalhe-wrap" id="detalhe-content">
+        <!-- Preenchido por JS -->
+      </div>
+    </section>
+
+    <!-- ══════════════════════════════════════════════
+         VIEW: NOVO ATENDIMENTO
+         ══════════════════════════════════════════════ -->
+    <section id="view-novo" class="view" style="display:none">
+      <div class="form-wrap">
+        <div class="form-header">
+          <button class="btn-back" onclick="App.navegar('painel')" aria-label="Voltar ao painel">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <polyline points="15 18 9 12 15 6"/>
+            </svg>
+            Voltar
+          </button>
+          <div>
+            <h1 class="form-title">Novo Atendimento</h1>
+            <p class="form-sub">Registre a entrada do equipamento. Serviços e atividades são adicionados depois.</p>
+          </div>
+        </div>
+
+        <form id="form-novo" autocomplete="off" novalidate>
+          <!-- Identificação -->
+          <fieldset class="form-section">
+            <legend>Equipamento</legend>
+            <div class="form-grid">
+              <div class="form-group">
+                <label for="f-equipamento">Equipamento <span class="req">*</span></label>
+                <input type="text" id="f-equipamento" name="equipamento" placeholder="Ex: Escavadeira CAT 320D, Cilindro Hidráulico" required>
+              </div>
+              <div class="form-group">
+                <label for="f-tag">Tag / Identificação</label>
+                <input type="text" id="f-tag" name="tag" placeholder="Ex: CAT-023, EQ-0042">
+              </div>
+              <div class="form-group">
+                <label for="f-placa">Placa</label>
+                <input type="text" id="f-placa" name="placa" placeholder="Ex: ABC-1234">
+              </div>
+              <div class="form-group">
+                <label for="f-horimetro">Horímetro</label>
+                <input type="text" id="f-horimetro" name="horimetro" placeholder="Ex: 7.890 h">
+              </div>
+            </div>
+          </fieldset>
+
+          <!-- Cliente -->
+          <fieldset class="form-section">
+            <legend>Cliente</legend>
+            <div class="form-grid">
+              <div class="form-group span-2">
+                <label for="f-empresa">Empresa / Cliente <span class="req">*</span></label>
+                <input type="text" id="f-empresa" name="empresa" placeholder="Nome da empresa ou cliente" required>
+              </div>
+              <div class="form-group span-2">
+                <label for="f-resp-cliente">Responsável requisitante (quem trouxe)</label>
+                <input type="text" id="f-resp-cliente" name="responsavel_cliente" placeholder="Nome e função — ex: Fábio Mendes (Gerente de Frota)">
+              </div>
+            </div>
+          </fieldset>
+
+          <!-- Atendimento -->
+          <fieldset class="form-section">
+            <legend>Atendimento</legend>
+            <div class="form-grid">
+              <div class="form-group">
+                <label for="f-resp-tecnico">Responsável técnico (quem vai executar)</label>
+                <input type="text" id="f-resp-tecnico" name="responsavel_tecnico" placeholder="Ex: João Silva — Mecânico">
+              </div>
+              <div class="form-group">
+                <label for="f-local">Localização / Baia</label>
+                <select id="f-local" name="localizacao">
+                  <option value="Baia 01">Baia 01</option>
+                  <option value="Baia 02">Baia 02</option>
+                  <option value="Baia 03">Baia 03</option>
+                  <option value="Baia 04">Baia 04</option>
+                  <option value="Setor de Usinagem">Setor de Usinagem</option>
+                  <option value="Setor de Solda">Setor de Solda</option>
+                  <option value="Testes Hidráulicos">Testes Hidráulicos</option>
+                  <option value="Pátio Externo">Pátio Externo</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="f-prioridade">Prioridade</label>
+                <select id="f-prioridade" name="prioridade">
+                  <option value="Normal">Normal</option>
+                  <option value="Alta">Alta</option>
+                  <option value="Urgente">Urgente</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="f-previsao">Previsão de entrega</label>
+                <input type="datetime-local" id="f-previsao" name="previsao_entrega">
+              </div>
+              <div class="form-group span-4">
+                <label for="f-queixa">Queixa / Relato inicial do cliente <span class="req">*</span></label>
+                <textarea id="f-queixa" name="queixa_inicial" rows="3" placeholder="Descreva o problema relatado pelo cliente. Ex: Máquina parou com vazamento no comando hidráulico." required></textarea>
+              </div>
+            </div>
+          </fieldset>
+
+          <!-- Campos opcionais -->
+          <fieldset class="form-section collapsible" id="fs-opcionals">
+            <legend class="legend-toggle" onclick="App.toggleSection('fs-opcionals')">
+              <span>Dados administrativos (OS, Orçamento, NF)</span>
+              <svg class="toggle-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+            </legend>
+            <div class="section-body" style="display:none">
+              <div class="form-grid">
+                <div class="form-group">
+                  <label for="f-os">Nº OS</label>
+                  <input type="text" id="f-os" name="num_os" placeholder="Ex: 2026-0098">
+                </div>
+                <div class="form-group">
+                  <label for="f-orc">Nº Orçamento</label>
+                  <input type="text" id="f-orc" name="num_orcamento" placeholder="Ex: 2026-0187">
+                </div>
+                <div class="form-group">
+                  <label for="f-nf">Nº NF</label>
+                  <input type="text" id="f-nf" name="num_nf" placeholder="Ex: NF-10492">
+                </div>
+              </div>
+            </div>
+          </fieldset>
+
+          <div class="form-actions">
+            <button type="button" class="btn btn-ghost" onclick="App.navegar('painel')">Cancelar</button>
+            <button type="submit" class="btn btn-primary" id="btn-salvar-novo">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              Registrar Entrada
+            </button>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <!-- ══════════════════════════════════════════════
+         VIEW: COMPRAS DIRETAS
+         ══════════════════════════════════════════════ -->
+    <section id="view-compras" class="view" style="display:none">
+      <div class="compras-wrap">
+        <div class="compras-header">
+          <div class="compras-header-left">
+            <div class="compras-title-row">
+              <svg class="ico-title-lg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+              <h1 class="compras-title">Compras Diretas</h1>
+            </div>
+            <p class="compras-sub">Solicitações de insumos e peças para aplicação direta nos veículos do pátio</p>
+          </div>
+          <div class="compras-header-right">
+            <button class="btn btn-primary" onclick="App.abrirModalNovaCompra()" id="btn-nova-compra-desk">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              <span>Nova Solicitação</span>
+            </button>
+          </div>
+        </div>
+        <div class="compras-subnav">
+          <div class="compras-filters">
+            <button class="chip active" id="cd-chip-todas" onclick="App.filtrarCompras('todas')">Todas</button>
+            <button class="chip" id="cd-chip-pendente" onclick="App.filtrarCompras('pendente')">
+              Pendentes <span class="cd-filter-badge" id="cd-badge-filtro-pendente">0</span>
+            </button>
+            <button class="chip" id="cd-chip-autorizado" onclick="App.filtrarCompras('autorizado')">Autorizadas</button>
+            <button class="chip" id="cd-chip-declinado" onclick="App.filtrarCompras('declinado')">Declinadas</button>
+            <button class="btn btn-sm btn-ghost" onclick="App.carregarCompras()" title="Atualizar">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+            </button>
+          </div>
+          <div class="compras-perm-notice" id="cd-perm-notice">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+            <span>Alçada de aprovação: <strong>Manuel</strong></span>
+          </div>
+        </div>
+        <div id="compras-list" class="compras-list">
+          <div class="empty-state">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+            <p>Nenhuma solicitação encontrada</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══════════════════════════════════════════════
+         VIEW: GESTÃO DE USUÁRIOS & ACESSOS (ADMIN)
+         ══════════════════════════════════════════════ -->
+    <section id="view-usuarios" class="view" style="display:none">
+      <div class="compras-container">
+        <div class="compras-header">
+          <div class="compras-header-left">
+            <div class="compras-title-row">
+              <svg class="ico-title-lg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+              <h1 class="compras-title">Gestão de Usuários & Acessos</h1>
+            </div>
+            <p class="compras-sub">Cadastre e configure administradores, operadores de pátio e clientes</p>
+          </div>
+          <div class="compras-header-right">
+            <button class="btn btn-primary" onclick="App.abrirModalNovoUsuario()" id="btn-novo-usuario">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              <span>Novo Usuário</span>
+            </button>
+            <button class="btn btn-ghost" onclick="App.carregarUsuarios()" title="Atualizar lista">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+            </button>
+          </div>
+        </div>
+        <div id="usuarios-lista-container" style="margin-top:16px">
+          <div class="empty-state"><p>Carregando usuários...</p></div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       MODO TV — PAINEL DE TELEVISÃO
+       ═══════════════════════════════════════════════════════════ -->
+  <div id="tv-overlay" class="tv-overlay" style="display:none" aria-hidden="true">
+    <!-- Header TV -->
+    <header class="tv-header">
+      <div class="tv-brand">
+        <div class="tv-brand-icon-wrap">
+          <svg class="tv-brand-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"/>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/>
+          </svg>
+        </div>
+        <div>
+          <div class="tv-brand-name">JB CUNHA</div>
+          <div class="tv-brand-sub">Central de Operações · Monitor TV</div>
+        </div>
+      </div>
+
+      <!-- KPIs TV -->
+      <div class="tv-kpis" id="tv-kpis">
+        <div class="tv-kpi" id="tv-kpi-patio">
+          <span class="tv-kpi-num">—</span>
+          <span class="tv-kpi-label">No Pátio</span>
+        </div>
+        <div class="tv-kpi orange" id="tv-kpi-andamento">
+          <span class="tv-kpi-num">—</span>
+          <span class="tv-kpi-label">Em Andamento</span>
+        </div>
+        <div class="tv-kpi amber" id="tv-kpi-aguardando">
+          <span class="tv-kpi-num">—</span>
+          <span class="tv-kpi-label">Aguardando</span>
+        </div>
+        <div class="tv-kpi green" id="tv-kpi-prontos">
+          <span class="tv-kpi-num">—</span>
+          <span class="tv-kpi-label">Prontos</span>
+        </div>
+        <div class="tv-kpi red" id="tv-kpi-atrasados">
+          <span class="tv-kpi-num">—</span>
+          <span class="tv-kpi-label">Atrasados</span>
+        </div>
+        <div class="tv-kpi slate" id="tv-kpi-entregues">
+          <span class="tv-kpi-num">—</span>
+          <span class="tv-kpi-label">Entregues</span>
+        </div>
+      </div>
+
+      <!-- Controles TV & Relógio -->
+      <div class="tv-header-right">
+        <!-- Controles de TV: Rolagem e Zoom -->
+        <div class="tv-controls-bar">
+          <button class="tv-ctrl-btn" id="tv-btn-autoscroll" onclick="App.toggleTvAutoScroll()" title="Pausar / Retomar Rolagem Automática (Espaço)">
+            <span id="tv-scroll-icon"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg></span>
+            <span id="tv-scroll-text">Rolagem</span>
+          </button>
+          <div class="tv-zoom-pill" title="Ajuste de tamanho para ver de longe (+ e - no teclado)">
+            <button class="tv-zoom-btn" onclick="App.alterarZoomTv(-1)" aria-label="Diminuir fonte">A−</button>
+            <span class="tv-zoom-val" id="tv-zoom-label">135%</span>
+            <button class="tv-zoom-btn" onclick="App.alterarZoomTv(1)" aria-label="Aumentar fonte">A+</button>
+          </div>
+          <button class="tv-ctrl-btn" onclick="App.toggleTvFullscreen()" title="Alternar Tela Cheia (F11)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:1.15em;height:1.15em">
+              <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
+            </svg>
+          </button>
+        </div>
+
+        <div class="tv-clock-box">
+          <div class="tv-clock" id="tv-clock">--:--:--</div>
+        </div>
+
+        <button class="tv-exit-btn" onclick="App.sairModoTv()" aria-label="Sair do Modo TV (Esc)" title="Sair do Modo TV (Esc)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Barra de Controle de Slides TV -->
+    <div class="tv-slides-bar" id="tv-slides-bar">
+      <div class="tv-slides-tabs" id="tv-slides-tabs">
+        <!-- Preenchido dinamicamente por JS -->
+      </div>
+      <div class="tv-slides-controls">
+        <button class="tv-slide-btn" onclick="App.slideAnterior()" title="Tela Anterior (Seta Esquerda)" aria-label="Tela Anterior">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:14px;height:14px"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <button class="tv-slide-btn tv-slide-play" id="tv-btn-slide-play" onclick="App.toggleRotacaoSlides()" title="Pausar / Retomar Rotação">
+          <span id="tv-slide-play-icon"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg></span>
+          <span id="tv-slide-play-text">Auto (12s)</span>
+        </button>
+        <button class="tv-slide-btn" onclick="App.proximoSlide()" title="Próxima Tela (Seta Direita)" aria-label="Próxima Tela">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:14px;height:14px"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+      </div>
+      <div class="tv-slide-timer-progress">
+        <div class="tv-slide-timer-fill" id="tv-slide-timer-fill"></div>
+      </div>
+    </div>
+
+    <!-- Conteúdo dos Slides TV (Tabela ou Detalhes) -->
+    <div class="tv-slides-viewport" id="tv-slides-viewport">
+      <!-- Slide 1: Tabela TV -->
+      <div class="tv-slide-pane" id="tv-slide-pane-table">
+        <div class="tv-table-wrap" id="tv-table-wrap">
+          <table class="tv-table" id="tv-table">
+            <thead>
+              <tr>
+                <th class="tv-col-tag">Tag / OS</th>
+                <th class="tv-col-empresa">Cliente</th>
+                <th class="tv-col-equip">Equipamento</th>
+                <th class="tv-col-servico">Serviços em Execução</th>
+                <th class="tv-col-resp">Responsável Técnico</th>
+                <th class="tv-col-local">Localização</th>
+                <th class="tv-col-estado">Estado Operacional</th>
+                <th class="tv-col-prog">Progresso</th>
+                <th class="tv-col-atu">Atualização</th>
+              </tr>
+            </thead>
+            <tbody id="tv-table-body">
+              <!-- Preenchido por JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Slide 2+: Cards com Avanço de Atividades a Fundo para TV -->
+      <div class="tv-slide-pane" id="tv-slide-pane-detalhes" style="display:none">
+        <div class="tv-machines-grid" id="tv-machines-grid">
+          <!-- Preenchido por JS -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Ticker inferior -->
+    <div class="tv-footer">
+      <div class="tv-ticker-tag">RADAR OFICINA</div>
+      <div class="tv-ticker" id="tv-ticker">
+        <div class="tv-ticker-track" id="tv-ticker-track">
+          <span id="tv-ticker-content">—</span>
+        </div>
+      </div>
+      <div class="tv-footer-right">
+        <span class="tv-pulse-dot"></span>
+        <span id="tv-update-label">Sincronizado</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       MODAL — DETALHE FLUTUANTE / EDIÇÃO
+       ═══════════════════════════════════════════════════════════ -->
+  <div id="modal-overlay" class="modal-overlay" style="display:none" role="dialog" aria-modal="true" aria-labelledby="modal-titulo">
+    <div class="modal-box" id="modal-box">
+      <div class="modal-header">
+        <h2 class="modal-titulo" id="modal-titulo">Detalhe</h2>
+        <button class="btn-icon" onclick="App.fecharModal()" aria-label="Fechar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
+      <div class="modal-body" id="modal-body">
+        <!-- Preenchido por JS -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal de visualização ampliada de fotos (Lightbox) -->
+  <div id="lightbox-overlay" class="lightbox-overlay" style="display:none" onclick="App.fecharLightbox(event)">
+    <div class="lightbox-box">
+      <button class="lightbox-close" onclick="App.fecharLightbox()" aria-label="Fechar foto">&times;</button>
+      <img id="lightbox-img" src="" alt="Evidência ampliada">
+      <div id="lightbox-caption" class="lightbox-caption"></div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       TELA DE LOGIN & AUTENTICAÇÃO
+       ═══════════════════════════════════════════════════════════ -->
+  <div id="auth-screen-overlay" class="auth-screen-overlay" style="display:none">
+    <div class="auth-card">
+      <div class="auth-brand">
+        <div class="auth-logo-badge">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 3v18"/><path d="M3 9h18"/></svg>
+        </div>
+        <h2 class="auth-title">JB CUNHA</h2>
+        <span class="auth-sub">Central de Operações, Pátio & Manutenção</span>
+      </div>
+      <form id="form-login" onsubmit="App.submeterLogin(event)" class="auth-form">
+        <div id="auth-error-msg" class="auth-error" style="display:none"></div>
+        <div class="form-group">
+          <label for="login-username">Usuário</label>
+          <div class="input-with-icon">
+            <svg class="input-ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            <input type="text" id="login-username" class="form-control" placeholder="Seu usuário de acesso" required autocomplete="username" autofocus>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="login-senha">Senha</label>
+          <div class="input-with-icon">
+            <svg class="input-ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            <input type="password" id="login-senha" class="form-control" placeholder="Sua senha" required autocomplete="current-password">
+            <button type="button" class="btn-toggle-pwd" onclick="App.toggleVerSenha('login-senha', this)" title="Alternar visibilidade da senha">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+          </div>
+        </div>
+        <button type="submit" class="btn btn-primary btn-auth-submit" id="btn-login-submit">
+          <span>Entrar no Sistema</span>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+        <div class="auth-footer-notes">
+          <span>Acesso seguro com criptografia e isolamento de perfis.</span>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Toast de notificações -->
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+  <script src="/js/app.js?v=4.0"></script>
+</body>
+</html>

@@ -1,0 +1,65 @@
+# ==========================================================
+# Configuração de Exemplo Nginx com Reverse Proxy e SSL
+# Central de Operações JB Cunha / Gestão de Pátio
+# ==========================================================
+
+server {
+    listen 80;
+    server_name patio.jbcunha.com.br;
+
+    # Redirecionamento HTTP para HTTPS
+    location / {
+        return 301 https://$host$request_uri;
+    }
+}
+
+server {
+    listen 443 ssl http2;
+    server_name patio.jbcunha.com.br;
+
+    # Certificados SSL (Let's Encrypt / Certbot)
+    ssl_certificate /etc/letsencrypt/live/patio.jbcunha.com.br/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/patio.jbcunha.com.br/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers HIGH:!aNULL:!MD5;
+    ssl_prefer_server_ciphers on;
+
+    # Cabeçalhos de Segurança
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-XSS-Protection "1; mode=block" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+
+    # Limite de tamanho de upload (para fotos de laudos e peças)
+    client_max_body_size 25M;
+
+    # Endpoint SSE (Server-Sent Events) - Desativar buffering
+    location /api/jbc/v1/mobile/stream {
+        proxy_pass http://127.0.0.1:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Connection '';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        # Configurações vitais para SSE em tempo real
+        proxy_buffering off;
+        proxy_cache off;
+        proxy_read_timeout 24h;
+        chunked_transfer_encoding off;
+    }
+
+    # Proxy geral da aplicação
+    location / {
+        proxy_pass http://127.0.0.1:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
+    }
+}

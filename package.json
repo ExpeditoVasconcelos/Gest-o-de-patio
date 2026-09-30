@@ -1,0 +1,26 @@
+{
+  "name": "glpi-jbcunha-operacoes",
+  "version": "1.0.0",
+  "description": "Central de Operações e Serviços JB Cunha com GLPI como núcleo de manutenção pesada",
+  "main": "api-gateway/server.js",
+  "scripts": {
+    "start": "node api-gateway/server.js",
+    "dev": "node api-gateway/server.js",
+    "check-regras": "node scripts/check-regras.js"
+  },
+  "keywords": [
+    "glpi",
+    "manutencao-industrial",
+    "oficina",
+    "maquinas-pesadas",
+    "ordem-de-servico",
+    "gestao-operacional"
+  ],
+  "author": "JB Cunha Manutenção e Serviços",
+  "license": "ISC",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.19.2",
+    "multer": "^1.4.5-lts.1"
+  }
+}
