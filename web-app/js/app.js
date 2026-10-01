@@ -218,8 +218,8 @@ const App = {
   tvPollingInterval: null,
   tvAutoScrollAtivo: true,
   tvScrollTimer: null,
-  tvZoomLevels: [1.0, 1.15, 1.35, 1.55, 1.8, 2.1],
-  tvZoomIndex: 2, // Padrão 135% (1.35x para leitura em TV)
+  tvZoomLevels: [0.65, 0.8, 0.95, 1.1, 1.25, 1.5, 1.85],
+  tvZoomIndex: 2, // Padrão dinâmico calculado por detectarZoomIdealTela()
 
   // ── Autenticação & Sessão ─────────────────────────────────────────
   token: localStorage.getItem('jbc_auth_token') || null,
@@ -386,7 +386,7 @@ const App = {
     } else if (this.usuario.role === 'usuario') {
       if (tabPatio) tabPatio.textContent = 'Pátio Operacional';
       if (tabStatus) tabStatus.textContent = 'Exibindo equipamentos em atendimento no pátio da oficina';
-      if (tabCompras) tabCompras.style.display = 'none';
+      if (tabCompras) tabCompras.style.display = 'inline-flex';
       if (tabUsuarios) tabUsuarios.style.display = 'none';
       if (btnNovo) btnNovo.style.display = 'inline-flex';
     } else if (this.usuario.role === 'admin') {
@@ -400,7 +400,7 @@ const App = {
 
   atualizarBadgeComprasPolling() {
     const atualizar = async () => {
-      if (!this.ehAdmin()) return;
+      if (this.ehCliente()) return;
       try {
         const r = await fetch('/api/jbc/v1/compras/pendentes/count');
         const j = await r.json();
@@ -446,6 +446,24 @@ const App = {
           this.alterarZoomTv(-1);
         }
       }
+    });
+
+    window.addEventListener('resize', () => {
+      if (this.tvAtivo && localStorage.getItem('jbc_tv_zoom_custom') !== 'true') {
+        this.detectarZoomIdealTela();
+        this.aplicarZoomTv();
+      }
+      this.ajustarResponsividadeMain();
+    });
+
+    window.addEventListener('orientationchange', () => {
+      setTimeout(() => {
+        if (this.tvAtivo && localStorage.getItem('jbc_tv_zoom_custom') !== 'true') {
+          this.detectarZoomIdealTela();
+          this.aplicarZoomTv();
+        }
+        this.ajustarResponsividadeMain();
+      }, 150);
     });
 
     window.addEventListener('hashchange', () => {
@@ -531,6 +549,7 @@ const App = {
     const el = $id(mapa[view] || 'view-painel');
     if (el) { el.style.display = 'block'; el.classList.add('active'); }
     this.viewAtual = view;
+    this.ajustarResponsividadeMain();
 
     if (view === 'detalhe' && equipId) {
       this.carregarDetalhe(equipId);
@@ -1235,7 +1254,7 @@ const App = {
 
       let acoesHtml = '';
       if (isPendente) {
-        if (isUserManuel) {
+        if (this.ehAdmin()) {
           acoesHtml = `
             <div class="cd-acoes">
               <button class="btn btn-sm cd-btn-autorizar" onclick="App.abrirModalAutorizarCompra(${c.id})">
@@ -1250,14 +1269,10 @@ const App = {
         } else {
           acoesHtml = `
             <div class="cd-acoes">
-              <button class="btn btn-sm cd-btn-autorizar cd-btn-disabled" onclick="App.toastPermissaoManuel()" title="Apenas Manuel possui autorização para aprovar">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:13px;height:13px"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                <span>Autorizar (exclusivo Manuel)</span>
-              </button>
-              <button class="btn btn-sm cd-btn-declinar cd-btn-disabled" onclick="App.toastPermissaoManuel()" title="Apenas Manuel possui autorização para declinar">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:13px;height:13px"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                <span>Declinar</span>
-              </button>
+              <span class="cd-status-solicitante" style="font-size:11.5px;color:#f59e0b;background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.25);padding:5px 12px;border-radius:12px;display:inline-flex;align-items:center;gap:6px">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                Aguardando aprovação da diretoria
+              </span>
             </div>`;
         }
       }
@@ -3039,19 +3054,41 @@ const App = {
       history.pushState(null, '', '#tv');
     }
 
-    // Carregar nível de zoom salvo (padrão 135% para ótima leitura em TV)
+    // Detecção automática da escala ideal para a resolução da tela
+    const savedCustom = localStorage.getItem('jbc_tv_zoom_custom') === 'true';
     const savedZoom = localStorage.getItem('jbc_tv_zoom');
-    if (savedZoom !== null) {
+    if (savedCustom && savedZoom !== null) {
       const idx = parseInt(savedZoom, 10);
       if (!isNaN(idx) && idx >= 0 && idx < this.tvZoomLevels.length) {
         this.tvZoomIndex = idx;
       }
+    } else {
+      this.detectarZoomIdealTela();
     }
     this.aplicarZoomTv();
 
     this.carregarTv();
     this.tvPollingInterval = setInterval(() => this.carregarTv(), 20000);
     this.iniciarTvAutoScroll();
+  },
+
+  detectarZoomIdealTela() {
+    const h = window.innerHeight;
+    const w = window.innerWidth;
+    // Seleciona escala ideal no array: [0.65, 0.8, 0.95, 1.1, 1.25, 1.5, 1.85]
+    if (h <= 650 || w <= 1024) {
+      this.tvZoomIndex = 0; // 65% (Notebooks compactos, tablets, telas pequenas)
+    } else if (h <= 780 || w <= 1366) {
+      this.tvZoomIndex = 1; // 80% (Notebook padrão 1366x768 ou 1080p com escala 150%)
+    } else if (h <= 920 || w <= 1600) {
+      this.tvZoomIndex = 2; // 95% (Notebook 1080p com escala 125% ou monitores intermediários)
+    } else if (h <= 1100) {
+      this.tvZoomIndex = 3; // 110% (Monitores Full HD 1080p nativo)
+    } else if (h <= 1450) {
+      this.tvZoomIndex = 4; // 125% (Monitores 2K e TVs 1080p grandes)
+    } else {
+      this.tvZoomIndex = 5; // 150% (TVs 4K ultra-wide)
+    }
   },
 
   sairModoTv() {
@@ -3071,7 +3108,7 @@ const App = {
   },
 
   aplicarZoomTv() {
-    const scale = this.tvZoomLevels[this.tvZoomIndex];
+    const scale = this.tvZoomLevels[this.tvZoomIndex] || 1.0;
     const setScale = (id) => {
       const el = $id(id);
       if (el) el.style.setProperty('--tv-scale', scale);
@@ -3092,7 +3129,26 @@ const App = {
 
   alterarZoomTv(delta) {
     this.tvZoomIndex = Math.max(0, Math.min(this.tvZoomLevels.length - 1, this.tvZoomIndex + delta));
+    localStorage.setItem('jbc_tv_zoom_custom', 'true');
     this.aplicarZoomTv();
+  },
+
+  ajustarResponsividadeMain() {
+    const mainEl = document.querySelector('.main-content');
+    if (!mainEl) return;
+    // O painel desktop/padrão tem rolagem normal; apenas o Modo TV é estritamente zero-scroll
+    mainEl.style.height = '';
+    mainEl.style.maxHeight = '';
+    mainEl.style.overflow = '';
+    mainEl.style.display = '';
+    mainEl.style.flexDirection = '';
+    const viewPainel = $id('view-painel');
+    if (viewPainel) {
+      viewPainel.style.height = '';
+      viewPainel.style.overflow = '';
+      viewPainel.style.display = '';
+      viewPainel.style.flexDirection = '';
+    }
   },
 
   toggleTvFullscreen() {

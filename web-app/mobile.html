@@ -1565,7 +1565,7 @@ function aplicarPermissoesMobile() {
     if (tabCompras) tabCompras.style.display = 'none';
   } else if (role === 'usuario') {
     if (tabNovo) tabNovo.style.display = 'flex';
-    if (tabCompras) tabCompras.style.display = 'none';
+    if (tabCompras) tabCompras.style.display = 'flex';
   } else if (role === 'admin') {
     if (tabNovo) tabNovo.style.display = 'flex';
     if (tabCompras) tabCompras.style.display = 'flex';
@@ -1614,10 +1614,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   carregarPainel();
   iniciarSSE();
 
-  // Polling e inicialização do badge de Compras Diretas (apenas Admin)
-  if (APP.meuRole === 'admin' && typeof mobCdAtualizarBadge === 'function') {
+  // Polling e inicialização do badge de Compras Diretas (Admin e Solicitante)
+  if (APP.meuRole !== 'cliente' && typeof mobCdAtualizarBadge === 'function') {
     mobCdAtualizarBadge();
-    setInterval(() => { if (APP.meuRole === 'admin') mobCdAtualizarBadge(); }, 25000);
+    setInterval(() => { if (APP.meuRole !== 'cliente') mobCdAtualizarBadge(); }, 25000);
   }
 });
 
@@ -3327,7 +3327,7 @@ async function mobCdCarregarLista() {
 
     const fmtVal = v => Number(v||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
     const fmtData = iso => { try { return new Date(iso).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}); } catch(_) { return ''; } };
-    const ehManuel = (APP.meuNome || '').toLowerCase() === 'manuel';
+    const ehAprovador = APP.meuRole === 'admin';
 
     el.innerHTML = lista.map(c => {
       const isPendente = c.status === 'pendente';
@@ -3348,7 +3348,7 @@ async function mobCdCarregarLista() {
         ? `<img src="${c.foto_url}" style="width:48px;height:48px;border-radius:6px;object-fit:cover;flex-shrink:0" onclick="window.open('${c.foto_url}','_blank')">`
         : '';
 
-      const acoesMob = (isPendente && ehManuel) ? `
+      const acoesMob = (isPendente && ehAprovador) ? `
         <div style="display:flex;gap:8px;margin-top:8px">
           <button class="btn-sheet-save" style="flex:1;padding:6px 10px;font-size:0.78rem;background:var(--green);border-color:var(--green)" onclick="mobCdAutorizar(${c.id})">
             ${mIcon('check', 12)} Autorizar
@@ -3356,9 +3356,9 @@ async function mobCdCarregarLista() {
           <button class="btn-sheet-cancel" style="flex:1;padding:6px 10px;font-size:0.78rem;color:var(--red);border-color:rgba(239,68,68,0.3)" onclick="mobCdDeclinar(${c.id})">
             ${mIcon('x', 12)} Declinar
           </button>
-        </div>` : (isPendente && !ehManuel) ? `
-        <div style="font-size:0.7rem;color:var(--t3);margin-top:6px;display:flex;align-items:center;gap:4px">
-          ${mIcon('lock', 11)} Aguardando autorização de Manuel
+        </div>` : (isPendente && !ehAprovador) ? `
+        <div style="font-size:0.72rem;color:#f59e0b;background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.2);padding:5px 8px;border-radius:6px;margin-top:6px;display:flex;align-items:center;gap:5px">
+          ${mIcon('clock', 11)} Aguardando aprovação da diretoria
         </div>` : '';
 
       return `
@@ -3396,7 +3396,7 @@ async function mobCdAutorizar(id) {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        autorizado_por: 'Manuel',
+        autorizado_por: APP.meuNome || 'Aprovador',
         valor_final: valorFinal,
         obs_aprovador: obs
       })
@@ -3428,7 +3428,7 @@ async function mobCdDeclinar(id) {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        autorizado_por: 'Manuel',
+        autorizado_por: APP.meuNome || 'Aprovador',
         motivo_declinio: motivo
       })
     });

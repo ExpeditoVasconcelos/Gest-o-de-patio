@@ -92,14 +92,21 @@
 /* ── Reset & Base ────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-html { font-size: 15px; scroll-behavior: smooth; }
+html {
+  font-size: 15px;
+  scroll-behavior: smooth;
+  width: 100%;
+  overflow-x: hidden;
+}
 
 body {
   font-family: var(--font-sans);
   background: var(--bg-base);
   color: var(--text-primary);
   line-height: 1.5;
+  width: 100%;
   min-height: 100dvh;
+  overflow-x: hidden;
   transition: background var(--med) var(--ease), color var(--med) var(--ease);
 }
 
@@ -468,7 +475,18 @@ code { font-family: var(--font-mono); font-size: .85em; }
 .main-content {
   max-width: 1700px;
   margin: 0 auto;
-  padding: 1.25rem;
+  padding: clamp(0.5rem, 1.2vw, 1.25rem);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+#view-painel {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.painel-slide-pane {
+  width: 100%;
 }
 
 .view { animation: fadeIn var(--med) var(--ease); }
@@ -1250,28 +1268,28 @@ code { font-family: var(--font-mono); font-size: .85em; }
    MODO TV — MONITOR DE OPERAÇÕES EM ALTA VISIBILIDADE (TELEVISÃO)
    ════════════════════════════════════════════════════════════════ */
 .tv-overlay {
-  --tv-scale: 1.35;
-  --tv-font-size: calc(1rem * var(--tv-scale));
+  --tv-scale: 1.0;
+  --tv-font-size: calc(1rem * var(--tv-scale, 1));
   position: fixed;
   inset: 0;
   z-index: 500;
   background: #060911;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow: hidden !important;
   color: #f1f5f9;
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
 
-/* Header TV (estático - imune ao zoom) */
+/* Header TV (responsivo e dinâmico) */
 .tv-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 1.25rem;
-  padding: 0.75rem 1.6rem;
+  gap: clamp(0.5rem, 1vw, 1.25rem);
+  padding: clamp(0.35rem, 0.8vh, 0.75rem) clamp(0.8rem, 1.4vw, 1.6rem);
   background: linear-gradient(180deg, #0f172a 0%, #090e1a 100%);
   border-bottom: 2px solid #1e293b;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
@@ -1336,30 +1354,31 @@ code { font-family: var(--font-mono); font-size: .85em; }
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 0.45rem 1.1rem;
-  border-radius: 12px;
+  padding: clamp(0.2rem, 0.5vh, 0.45rem) clamp(0.4rem, 0.8vw, 1.1rem);
+  border-radius: 8px;
   background: #0e1626;
   border: 1.5px solid #1e293b;
-  min-width: 96px;
+  min-width: clamp(52px, 6vw, 96px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
   transition: transform 0.2s ease, border-color 0.2s ease;
 }
 
 .tv-kpi-num {
   font-family: var(--font-mono);
-  font-size: 1.9rem;
+  font-size: clamp(1.1rem, 2.2vh, 1.9rem);
   font-weight: 900;
   line-height: 1;
   color: #ffffff;
 }
 
 .tv-kpi-label {
-  font-size: 0.72rem;
+  font-size: clamp(0.6rem, 1vh, 0.72rem);
   color: #94a3b8;
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  margin-top: 0.18rem;
+  margin-top: 2px;
+  white-space: nowrap;
 }
 
 .tv-kpi.orange {
@@ -1877,27 +1896,29 @@ code { font-family: var(--font-mono); font-size: .85em; }
   white-space: nowrap;
 }
 
-/* Footer TV (estático - imune ao zoom) */
+/* Footer TV (responsivo e dinâmico) */
 .tv-footer {
   display: flex;
   align-items: center;
-  gap: 1rem;
-  padding: 0.65rem 1.6rem;
+  gap: clamp(0.5rem, 1vw, 1rem);
+  padding: clamp(0.25rem, 0.5vh, 0.5rem) clamp(0.8rem, 1.4vw, 1.6rem);
+  height: clamp(32px, 4.2vh, 42px);
   background: #090e17;
   border-top: 2px solid #1e293b;
   flex-shrink: 0;
   box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.6);
+  box-sizing: border-box;
 }
 
 .tv-ticker-tag {
   font-family: var(--font-mono);
-  font-size: 0.82rem;
+  font-size: clamp(0.68rem, 1.1vh, 0.82rem);
   font-weight: 900;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.08em;
   color: #060911;
   background: #f97316;
-  padding: 0.25rem 0.7rem;
-  border-radius: 6px;
+  padding: clamp(0.15rem, 0.3vh, 0.25rem) clamp(0.4rem, 0.6vw, 0.7rem);
+  border-radius: 4px;
   white-space: nowrap;
   box-shadow: 0 0 10px rgba(249, 115, 22, 0.4);
 }
@@ -1958,15 +1979,25 @@ code { font-family: var(--font-mono); font-size: .85em; }
   50% { border-color: #7f1d1d; }
 }
 
-/* Suporte para TV 4K e resoluções ultra-largas */
+/* Suporte para TV 4K, Monitores e Notebooks com Fallback Dinâmico */
 @media (min-width: 2500px) {
-  .tv-overlay {
-    --tv-scale: 2.1;
+  .tv-overlay:not([style*="--tv-scale"]) {
+    --tv-scale: 1.6;
   }
 }
 @media (min-width: 1900px) and (max-width: 2499px) {
-  .tv-overlay {
-    --tv-scale: 1.45;
+  .tv-overlay:not([style*="--tv-scale"]) {
+    --tv-scale: 1.25;
+  }
+}
+@media (max-height: 750px) {
+  .tv-overlay:not([style*="--tv-scale"]) {
+    --tv-scale: 0.8;
+  }
+}
+@media (max-height: 620px) {
+  .tv-overlay:not([style*="--tv-scale"]) {
+    --tv-scale: 0.68;
   }
 }
 
@@ -2640,12 +2671,32 @@ code { font-family: var(--font-mono); font-size: .85em; }
 }
 
 /* ════════════════════════════════════════════════════════════════
-   SCROLLBAR
+   SCROLLBAR PADRÃO ELEGANTE (MODO DESKTOP, TELAS E MODAIS)
    ════════════════════════════════════════════════════════════════ */
-::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar { width: 7px; height: 7px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--border-hover); }
+
+/* ════════════════════════════════════════════════════════════════
+   ZERO SCROLL EXCLUSIVO PARA O MODO TV
+   ════════════════════════════════════════════════════════════════ */
+.tv-overlay,
+.tv-overlay * {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+.tv-overlay::-webkit-scrollbar,
+.tv-overlay *::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  background: transparent !important;
+}
+.tv-overlay::-webkit-scrollbar-track,
+.tv-overlay *::-webkit-scrollbar-track { background: transparent !important; }
+.tv-overlay::-webkit-scrollbar-thumb,
+.tv-overlay *::-webkit-scrollbar-thumb { background: transparent !important; }
 
 /* ════════════════════════════════════════════════════════════════
    SISTEMA DE SLIDES — PAINEL OPERACIONAL E MODO TV
@@ -3103,18 +3154,19 @@ code { font-family: var(--font-mono); font-size: .85em; }
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 1rem;
-  padding: 0.6rem 1.5rem 0.75rem;
+  gap: clamp(0.5rem, 1vw, 1rem);
+  padding: clamp(0.25rem, 0.6vh, 0.5rem) clamp(0.8rem, 1.4vw, 1.5rem);
   background: rgba(15, 23, 42, 0.95);
   border-bottom: 1px solid var(--border);
   position: relative;
   overflow: hidden;
+  flex-shrink: 0;
 }
 
 .tv-slides-tabs {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: clamp(0.25rem, 0.5vw, 0.5rem);
   overflow-x: auto;
   scrollbar-width: none;
 }
@@ -3122,10 +3174,10 @@ code { font-family: var(--font-mono); font-size: .85em; }
 
 .tv-slide-tab {
   white-space: nowrap;
-  font-size: 0.95rem;
+  font-size: clamp(0.75rem, 1.4vh, 0.95rem);
   font-weight: 700;
-  padding: 0.4rem 1.1rem;
-  border-radius: 8px;
+  padding: clamp(0.2rem, 0.4vh, 0.35rem) clamp(0.5rem, 0.8vw, 1rem);
+  border-radius: 6px;
   border: 1px solid var(--border);
   background: var(--bg-surface);
   color: var(--text-secondary);
@@ -3147,14 +3199,14 @@ code { font-family: var(--font-mono); font-size: .85em; }
 .tv-slides-controls {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: clamp(0.25rem, 0.5vw, 0.5rem);
   flex-shrink: 0;
 }
 .tv-slide-btn {
-  font-size: 1rem;
+  font-size: clamp(0.75rem, 1.3vh, 0.92rem);
   font-weight: 800;
-  padding: 0.38rem 0.85rem;
-  border-radius: 8px;
+  padding: clamp(0.2rem, 0.4vh, 0.35rem) clamp(0.45rem, 0.7vw, 0.8rem);
+  border-radius: 6px;
   border: 1px solid var(--border);
   background: var(--bg-surface);
   color: #ffffff;
@@ -3198,30 +3250,51 @@ code { font-family: var(--font-mono); font-size: .85em; }
 
 .tv-slides-viewport {
   flex: 1;
-  overflow-y: auto;
-  padding: calc(1rem * var(--tv-scale, 1.35)) calc(1.5rem * var(--tv-scale, 1.35));
+  min-height: 0;
+  height: 100%;
+  overflow: hidden !important;
+  padding: clamp(6px, 1vh, 16px) clamp(10px, 1.5vw, 24px);
   width: 100%;
   box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+}
+
+.tv-slide-pane {
+  flex: 1;
+  min-height: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden !important;
 }
 
 .tv-machines-grid {
-  display: block;
+  flex: 1;
+  min-height: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
   width: 100%;
   box-sizing: border-box;
+  overflow: hidden !important;
 }
 
-/* Card da Máquina na TV — Ocupa 100% da largura útil */
+/* Card da Máquina na TV — Ocupa 100% da tela útil sem rolagem */
 .slide-machine-card.tv-card {
   width: 100%;
+  height: 100%;
+  max-height: 100%;
   box-sizing: border-box;
-  padding: calc(1.5rem * var(--tv-scale, 1.35)) calc(1.85rem * var(--tv-scale, 1.35));
-  border: calc(2px * var(--tv-scale, 1.35)) solid rgba(255, 255, 255, 0.12);
-  border-radius: calc(14px * var(--tv-scale, 1.35));
+  padding: clamp(8px, 1.4vh, 20px) clamp(12px, 1.8vw, 26px);
+  border: calc(1.5px * var(--tv-scale, 1)) solid rgba(255, 255, 255, 0.12);
+  border-radius: calc(12px * var(--tv-scale, 1));
   background: linear-gradient(180deg, #0d1628 0%, #080d1a 100%);
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
   display: flex;
   flex-direction: column;
-  gap: calc(1.25rem * var(--tv-scale, 1.35));
+  gap: clamp(6px, 1vh, 14px);
+  overflow: hidden !important;
 }
 
 /* Cabeçalho Hero da Máquina na TV */
@@ -3229,9 +3302,10 @@ code { font-family: var(--font-mono); font-size: .85em; }
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: calc(1.5rem * var(--tv-scale, 1.35));
-  padding-bottom: calc(1.15rem * var(--tv-scale, 1.35));
-  border-bottom: calc(2px * var(--tv-scale, 1.35)) solid rgba(255, 255, 255, 0.08);
+  gap: clamp(10px, 2vw, 24px);
+  padding-bottom: clamp(6px, 1vh, 12px);
+  border-bottom: calc(1.5px * var(--tv-scale, 1)) solid rgba(255, 255, 255, 0.08);
+  flex-shrink: 0;
 }
 
 .slide-machine-card.tv-card .slide-mch-header-left {
@@ -3242,90 +3316,93 @@ code { font-family: var(--font-mono); font-size: .85em; }
 .slide-machine-card.tv-card .slide-mch-tag-row {
   display: flex;
   align-items: center;
-  gap: calc(0.65rem * var(--tv-scale, 1.35));
-  margin-bottom: calc(0.45rem * var(--tv-scale, 1.35));
+  gap: calc(0.5rem * var(--tv-scale, 1));
+  margin-bottom: clamp(2px, 0.4vh, 6px);
   flex-wrap: wrap;
 }
 
 .slide-machine-card.tv-card .slide-mch-tag {
   font-family: 'JetBrains Mono', monospace;
-  font-size: calc(1.35rem * var(--tv-scale, 1.35));
+  font-size: clamp(1rem, 2.2vh, calc(1.35rem * var(--tv-scale, 1)));
   font-weight: 900;
-  padding: calc(0.3rem * var(--tv-scale, 1.35)) calc(0.95rem * var(--tv-scale, 1.35));
-  border-radius: calc(8px * var(--tv-scale, 1.35));
+  padding: calc(0.2rem * var(--tv-scale, 1)) calc(0.75rem * var(--tv-scale, 1));
+  border-radius: calc(6px * var(--tv-scale, 1));
   background: rgba(99, 102, 241, 0.22);
-  border: calc(2px * var(--tv-scale, 1.35)) solid rgba(99, 102, 241, 0.5);
+  border: calc(1.5px * var(--tv-scale, 1)) solid rgba(99, 102, 241, 0.5);
   color: #a5b4fc;
 }
 
 .slide-machine-card.tv-card .slide-mch-status {
-  font-size: calc(0.85rem * var(--tv-scale, 1.35));
+  font-size: clamp(0.72rem, 1.4vh, calc(0.85rem * var(--tv-scale, 1)));
   font-weight: 800;
-  padding: calc(0.28rem * var(--tv-scale, 1.35)) calc(0.85rem * var(--tv-scale, 1.35));
+  padding: calc(0.2rem * var(--tv-scale, 1)) calc(0.7rem * var(--tv-scale, 1));
   border-radius: 99px;
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
 
 .slide-machine-card.tv-card .slide-prio {
-  font-size: calc(0.82rem * var(--tv-scale, 1.35));
+  font-size: clamp(0.7rem, 1.3vh, calc(0.82rem * var(--tv-scale, 1)));
   font-weight: 800;
-  padding: calc(0.25rem * var(--tv-scale, 1.35)) calc(0.75rem * var(--tv-scale, 1.35));
-  border-radius: calc(6px * var(--tv-scale, 1.35));
+  padding: calc(0.2rem * var(--tv-scale, 1)) calc(0.65rem * var(--tv-scale, 1));
+  border-radius: calc(5px * var(--tv-scale, 1));
 }
 
 .slide-machine-card.tv-card .slide-mch-os {
-  font-size: calc(0.82rem * var(--tv-scale, 1.35));
+  font-size: clamp(0.7rem, 1.3vh, calc(0.82rem * var(--tv-scale, 1)));
   font-weight: 700;
-  padding: calc(0.25rem * var(--tv-scale, 1.35)) calc(0.7rem * var(--tv-scale, 1.35));
+  padding: calc(0.2rem * var(--tv-scale, 1)) calc(0.6rem * var(--tv-scale, 1));
   background: rgba(255, 255, 255, 0.08);
-  border-radius: calc(6px * var(--tv-scale, 1.35));
+  border-radius: calc(5px * var(--tv-scale, 1));
   color: var(--text-secondary);
 }
 
 .slide-machine-card.tv-card .slide-mch-name {
-  font-size: calc(1.85rem * var(--tv-scale, 1.35));
+  font-size: clamp(1.2rem, 2.8vh, calc(1.85rem * var(--tv-scale, 1)));
   font-weight: 800;
   color: #f8fafc;
-  line-height: 1.25;
+  line-height: 1.15;
   letter-spacing: -0.02em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .slide-machine-card.tv-card .slide-mch-sub {
   display: flex;
   align-items: center;
-  gap: calc(1.1rem * var(--tv-scale, 1.35));
+  gap: clamp(8px, 1.2vw, 18px);
   flex-wrap: wrap;
-  font-size: calc(0.92rem * var(--tv-scale, 1.35));
+  font-size: clamp(0.78rem, 1.4vh, calc(0.92rem * var(--tv-scale, 1)));
   color: var(--text-secondary);
-  margin-top: calc(0.45rem * var(--tv-scale, 1.35));
+  margin-top: clamp(2px, 0.4vh, 6px);
 }
 
 /* Direita: KPI Gauge e Progresso na TV */
 .slide-machine-card.tv-card .slide-mch-header-right {
-  min-width: calc(210px * var(--tv-scale, 1.35));
+  min-width: clamp(150px, 18vw, 240px);
   text-align: right;
   flex-shrink: 0;
 }
 
 .slide-machine-card.tv-card .slide-mch-pct-val {
   font-family: 'JetBrains Mono', monospace;
-  font-size: calc(2.85rem * var(--tv-scale, 1.35));
+  font-size: clamp(1.8rem, 4.2vh, calc(2.85rem * var(--tv-scale, 1)));
   font-weight: 900;
   line-height: 1;
   color: #f8fafc;
 }
 
 .slide-machine-card.tv-card .slide-mch-prog-wrap {
-  margin-top: calc(0.45rem * var(--tv-scale, 1.35));
+  margin-top: clamp(2px, 0.4vh, 6px);
 }
 
 .slide-machine-card.tv-card .slide-mch-prog-bar {
-  height: calc(12px * var(--tv-scale, 1.35));
+  height: clamp(8px, 1.3vh, 14px);
   border-radius: 99px;
   background: rgba(255, 255, 255, 0.08);
   overflow: hidden;
-  margin-bottom: calc(0.35rem * var(--tv-scale, 1.35));
+  margin-bottom: clamp(2px, 0.3vh, 5px);
 }
 
 .slide-machine-card.tv-card .slide-mch-prog-fill {
@@ -3335,14 +3412,22 @@ code { font-family: var(--font-mono); font-size: .85em; }
 }
 
 .slide-machine-card.tv-card .slide-mch-atv-count {
-  font-size: calc(0.85rem * var(--tv-scale, 1.35));
+  font-size: clamp(0.72rem, 1.3vh, calc(0.85rem * var(--tv-scale, 1)));
   font-weight: 700;
   color: var(--text-muted);
 }
 
-/* Subtítulo da Seção de Serviços */
+/* Corpo e Subtítulo da Seção de Serviços */
+.slide-machine-card.tv-card .slide-mch-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden !important;
+}
+
 .slide-machine-card.tv-card .slide-mch-srv-label {
-  font-size: calc(0.82rem * var(--tv-scale, 1.35));
+  font-size: clamp(0.72rem, 1.3vh, calc(0.82rem * var(--tv-scale, 1)));
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.09em;
@@ -3350,36 +3435,44 @@ code { font-family: var(--font-mono); font-size: .85em; }
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: calc(0.85rem * var(--tv-scale, 1.35));
+  margin-bottom: clamp(4px, 0.7vh, 8px);
+  flex-shrink: 0;
 }
 
 .slide-machine-card.tv-card .slide-mch-srv-count {
-  font-size: calc(0.8rem * var(--tv-scale, 1.35));
+  font-size: clamp(0.7rem, 1.2vh, calc(0.8rem * var(--tv-scale, 1)));
   color: var(--accent);
   background: rgba(99, 102, 241, 0.15);
-  padding: calc(0.15rem * var(--tv-scale, 1.35)) calc(0.6rem * var(--tv-scale, 1.35));
+  padding: calc(0.12rem * var(--tv-scale, 1)) calc(0.5rem * var(--tv-scale, 1));
   border-radius: 99px;
   font-weight: 700;
 }
 
-/* Grid de Serviços — Total Widescreen (Multi-coluna lado a lado) */
+/* Grid de Serviços — Total Widescreen e Altura Flexível */
 .slide-machine-card.tv-card .slide-mch-services-grid {
+  flex: 1;
+  min-height: 0;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(calc(460px * var(--tv-scale, 1.35)), 1fr));
-  gap: calc(1.25rem * var(--tv-scale, 1.35));
+  grid-template-columns: repeat(auto-fit, minmax(clamp(280px, 28vw, 540px), 1fr));
+  gap: clamp(8px, 1.3vh, 16px);
   width: 100%;
   box-sizing: border-box;
+  overflow: hidden !important;
 }
 
 /* Card do Serviço Individual na TV */
 .slide-machine-card.tv-card .slide-srv-card {
   background: rgba(15, 23, 42, 0.75);
-  border: calc(1.5px * var(--tv-scale, 1.35)) solid rgba(255, 255, 255, 0.08);
-  border-radius: calc(10px * var(--tv-scale, 1.35));
-  padding: calc(1.15rem * var(--tv-scale, 1.35)) calc(1.35rem * var(--tv-scale, 1.35));
+  border: calc(1.5px * var(--tv-scale, 1)) solid rgba(255, 255, 255, 0.08);
+  border-radius: calc(10px * var(--tv-scale, 1));
+  padding: clamp(6px, 1.1vh, 14px) clamp(8px, 1.4vw, 16px);
   display: flex;
   flex-direction: column;
+  height: 100%;
+  max-height: 100%;
+  min-height: 0;
   box-sizing: border-box;
+  overflow: hidden !important;
 }
 
 .slide-machine-card.tv-card .slide-srv-head {
@@ -3387,34 +3480,35 @@ code { font-family: var(--font-mono); font-size: .85em; }
   justify-content: space-between;
   align-items: center;
   flex-wrap: wrap;
-  gap: calc(0.65rem * var(--tv-scale, 1.35));
-  padding-bottom: calc(0.75rem * var(--tv-scale, 1.35));
-  margin-bottom: calc(0.85rem * var(--tv-scale, 1.35));
-  border-bottom: calc(1px * var(--tv-scale, 1.35)) solid rgba(255, 255, 255, 0.08);
+  gap: clamp(4px, 0.6vh, 8px);
+  padding-bottom: clamp(4px, 0.6vh, 8px);
+  margin-bottom: clamp(4px, 0.6vh, 8px);
+  border-bottom: calc(1px * var(--tv-scale, 1)) solid rgba(255, 255, 255, 0.08);
+  flex-shrink: 0;
 }
 
 .slide-machine-card.tv-card .slide-srv-info {
   display: flex;
   align-items: center;
-  gap: calc(0.65rem * var(--tv-scale, 1.35));
+  gap: clamp(4px, 0.8vw, 8px);
   flex-wrap: wrap;
 }
 
 .slide-machine-card.tv-card .slide-srv-title {
-  font-size: calc(1.18rem * var(--tv-scale, 1.35));
+  font-size: clamp(0.95rem, 1.9vh, calc(1.18rem * var(--tv-scale, 1)));
   font-weight: 800;
   color: #f8fafc;
 }
 
 .slide-machine-card.tv-card .slide-srv-badge {
-  font-size: calc(0.78rem * var(--tv-scale, 1.35));
+  font-size: clamp(0.68rem, 1.2vh, calc(0.78rem * var(--tv-scale, 1)));
   font-weight: 800;
-  padding: calc(0.2rem * var(--tv-scale, 1.35)) calc(0.65rem * var(--tv-scale, 1.35));
+  padding: calc(0.15rem * var(--tv-scale, 1)) calc(0.55rem * var(--tv-scale, 1));
   border-radius: 99px;
 }
 
 .slide-machine-card.tv-card .slide-srv-tech {
-  font-size: calc(0.85rem * var(--tv-scale, 1.35));
+  font-size: clamp(0.72rem, 1.3vh, calc(0.85rem * var(--tv-scale, 1)));
   color: var(--text-secondary);
   font-weight: 600;
 }
@@ -3422,13 +3516,13 @@ code { font-family: var(--font-mono); font-size: .85em; }
 .slide-machine-card.tv-card .slide-srv-prog {
   display: flex;
   align-items: center;
-  gap: calc(0.55rem * var(--tv-scale, 1.35));
-  min-width: calc(130px * var(--tv-scale, 1.35));
+  gap: clamp(4px, 0.6vw, 8px);
+  min-width: clamp(90px, 10vw, 140px);
 }
 
 .slide-machine-card.tv-card .slide-srv-prog-bar {
-  width: calc(80px * var(--tv-scale, 1.35));
-  height: calc(7px * var(--tv-scale, 1.35));
+  width: clamp(50px, 6vw, 90px);
+  height: clamp(5px, 0.9vh, 8px);
   border-radius: 99px;
   background: rgba(255, 255, 255, 0.08);
   overflow: hidden;
@@ -3442,34 +3536,39 @@ code { font-family: var(--font-mono); font-size: .85em; }
 
 .slide-machine-card.tv-card .slide-srv-prog-txt {
   font-family: 'JetBrains Mono', monospace;
-  font-size: calc(0.82rem * var(--tv-scale, 1.35));
+  font-size: clamp(0.7rem, 1.2vh, calc(0.82rem * var(--tv-scale, 1)));
   font-weight: 800;
   color: var(--text-muted);
 }
 
-/* Lista e Itens do Checklist no Slide TV */
+/* Lista e Itens do Checklist no Slide TV — Multi-coluna automática para encaixar sem rolagem */
 .slide-machine-card.tv-card .slide-atv-list {
-  display: flex;
-  flex-direction: column;
-  gap: calc(0.55rem * var(--tv-scale, 1.35));
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(clamp(200px, 20vw, 320px), 1fr));
+  gap: clamp(3px, 0.6vh, 8px);
+  align-content: start;
+  overflow: hidden !important;
 }
 
 .slide-machine-card.tv-card .slide-atv-item {
   display: flex;
   align-items: center;
-  gap: calc(0.85rem * var(--tv-scale, 1.35));
-  padding: calc(0.65rem * var(--tv-scale, 1.35)) calc(0.95rem * var(--tv-scale, 1.35));
-  border-radius: calc(8px * var(--tv-scale, 1.35));
+  gap: clamp(4px, 0.7vw, 10px);
+  padding: clamp(3px, 0.6vh, 8px) clamp(6px, 1vw, 12px);
+  border-radius: calc(6px * var(--tv-scale, 1));
   background: rgba(0, 0, 0, 0.22);
-  border: calc(1px * var(--tv-scale, 1.35)) solid rgba(255, 255, 255, 0.05);
+  border: calc(1px * var(--tv-scale, 1)) solid rgba(255, 255, 255, 0.05);
+  box-sizing: border-box;
 }
 
 .slide-machine-card.tv-card .slide-atv-check {
-  width: calc(28px * var(--tv-scale, 1.35));
-  height: calc(28px * var(--tv-scale, 1.35));
-  font-size: calc(1.15rem * var(--tv-scale, 1.35));
-  border-radius: calc(6px * var(--tv-scale, 1.35));
-  border-width: calc(2px * var(--tv-scale, 1.35));
+  width: clamp(18px, 2.6vh, calc(26px * var(--tv-scale, 1)));
+  height: clamp(18px, 2.6vh, calc(26px * var(--tv-scale, 1)));
+  font-size: clamp(0.85rem, 1.5vh, calc(1.1rem * var(--tv-scale, 1)));
+  border-radius: calc(5px * var(--tv-scale, 1));
+  border-width: calc(1.5px * var(--tv-scale, 1));
   flex-shrink: 0;
   display: flex;
   align-items: center;
@@ -3500,10 +3599,13 @@ code { font-family: var(--font-mono); font-size: .85em; }
 }
 
 .slide-machine-card.tv-card .slide-atv-desc {
-  font-size: calc(1.08rem * var(--tv-scale, 1.35));
+  font-size: clamp(0.78rem, 1.4vh, calc(1rem * var(--tv-scale, 1)));
   color: #f1f5f9;
   font-weight: 500;
-  line-height: 1.35;
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .slide-machine-card.tv-card .slide-atv-desc.done {
@@ -3514,9 +3616,9 @@ code { font-family: var(--font-mono); font-size: .85em; }
 .slide-machine-card.tv-card .slide-atv-meta {
   display: flex;
   align-items: center;
-  gap: calc(0.85rem * var(--tv-scale, 1.35));
-  font-size: calc(0.82rem * var(--tv-scale, 1.35));
-  margin-top: calc(0.25rem * var(--tv-scale, 1.35));
+  gap: clamp(4px, 0.7vw, 10px);
+  font-size: clamp(0.68rem, 1.1vh, calc(0.78rem * var(--tv-scale, 1)));
+  margin-top: 1px;
 }
 
 

@@ -11,7 +11,8 @@ const { autenticar } = require('../middlewares/auth');
 router.post('/login', (req, res) => {
   const username = req.body?.username;
   const senha = req.body?.senha || req.body?.password;
-  const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || '127.0.0.1';
+  const rawIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress || '127.0.0.1';
+  const ip = typeof rawIp === 'string' ? rawIp.split(',')[0].trim() : '127.0.0.1';
 
   const resultado = authService.autenticar(username, senha, ip);
   if (!resultado.success) {

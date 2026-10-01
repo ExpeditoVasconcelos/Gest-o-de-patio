@@ -1,6 +1,6 @@
 {
   "versao": "1.0",
-  "atualizado_em": "2026-09-28T11:34:28.148Z",
+  "atualizado_em": "2026-10-01T20:42:06.831Z",
   "usuarios": [
     {
       "id": 1,
@@ -12,7 +12,7 @@
       "ativo": true,
       "criado_em": "2026-09-26T16:36:49.325Z",
       "atualizado_em": "2026-09-26T16:36:49.325Z",
-      "ultimo_login": "2026-09-26T20:30:54.237Z"
+      "ultimo_login": "2026-10-01T20:42:05.939Z"
     },
     {
       "id": 2,
@@ -24,7 +24,7 @@
       "ativo": true,
       "criado_em": "2026-09-26T16:36:49.325Z",
       "atualizado_em": "2026-09-26T16:36:49.325Z",
-      "ultimo_login": "2026-09-28T11:34:28.147Z"
+      "ultimo_login": "2026-10-01T20:42:06.030Z"
     },
     {
       "id": 3,
@@ -73,6 +73,18 @@
       "criado_em": "2026-09-26T16:59:06.025Z",
       "atualizado_em": "2026-09-26T16:59:06.025Z",
       "ultimo_login": "2026-09-26T16:59:06.224Z"
+    },
+    {
+      "id": 7,
+      "username": "operador",
+      "nome": "Operador Pátio",
+      "senha_hash": "a169d6c81a23a56279339901e09ed8d3:c1051737325a4eeea88d57f73039078465ad3aba17667800a35a605f6dd11a56c611ad22cde46c858851705fc5028479bd3e3a4ffbcd3382056417347f77f0dc",
+      "role": "usuario",
+      "empresa_vinculada": null,
+      "ativo": true,
+      "criado_em": "2026-10-01T20:40:18.356Z",
+      "atualizado_em": "2026-10-01T20:40:18.357Z",
+      "ultimo_login": "2026-10-01T20:42:06.132Z"
     }
   ]
 }

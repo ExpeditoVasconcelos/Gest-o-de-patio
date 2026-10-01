@@ -8,6 +8,7 @@ services:
     container_name: jbcunha-gestao-patio
     restart: unless-stopped
     ports:
+      - "80:3000"
       - "3000:3000"
     environment:
       - NODE_ENV=production
@@ -19,6 +20,11 @@ services:
     volumes:
       - ./api-gateway/data:/app/api-gateway/data
       - ./web-app/uploads:/app/web-app/uploads
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "5"
     networks:
       - jbcunha-net
 

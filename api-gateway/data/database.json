@@ -270,8 +270,8 @@
         }
       ],
       "fotos": [],
-      "tempo_oficina": "0h 0m",
-      "ultima_atualizacao_label": "0m",
+      "tempo_oficina": "3d 9h",
+      "ultima_atualizacao_label": "3d 9h",
       "atrasado": false,
       "progresso": 0,
       "total_atividades": 10,
@@ -584,8 +584,8 @@
         }
       ],
       "fotos": [],
-      "tempo_oficina": "0h 5m",
-      "ultima_atualizacao_label": "5m",
+      "tempo_oficina": "3d 9h",
+      "ultima_atualizacao_label": "3d 9h",
       "atrasado": false,
       "progresso": 0,
       "total_atividades": 10,
@@ -741,7 +741,7 @@
       "fotos": [
         "/uploads/mob-1789765026173-6672284.jpg"
       ],
-      "tempo_oficina": "9d 14h",
+      "tempo_oficina": "12d 23h",
       "chat": [
         {
           "id": 1,
@@ -763,7 +763,7 @@
           "foto": "/uploads/mob-1789765026173-6672284.jpg"
         }
       ],
-      "ultima_atualizacao_label": "2m",
+      "ultima_atualizacao_label": "3d 9h",
       "atrasado": false,
       "progresso": 100,
       "total_atividades": 2,
@@ -1413,7 +1413,7 @@
       "fotos": [
         "/uploads/mob-1789752036566-519580004.jpg"
       ],
-      "tempo_oficina": "9d 18h",
+      "tempo_oficina": "13d 3h",
       "chat": [
         {
           "id": 1,
@@ -1435,7 +1435,7 @@
           "foto": "/uploads/mob-1789752036566-519580004.jpg"
         }
       ],
-      "ultima_atualizacao_label": "0m",
+      "ultima_atualizacao_label": "3d 9h",
       "atrasado": false,
       "progresso": 100,
       "total_atividades": 10,
@@ -2340,8 +2340,8 @@
       "fotos": [
         "/uploads/midia-1789618370917-577974111.jpg"
       ],
-      "tempo_oficina": "11d 8h",
-      "ultima_atualizacao_label": "9d 19h",
+      "tempo_oficina": "14d 17h",
+      "ultima_atualizacao_label": "13d 4h",
       "atrasado": false,
       "progresso": 100,
       "total_atividades": 7,

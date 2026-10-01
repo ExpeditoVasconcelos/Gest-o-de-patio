@@ -43,11 +43,13 @@ echo  - Painel da Oficina: http://localhost:3000
 echo  - Modo TV:          http://localhost:3000/#tv
 echo.
 :: Descobrir IP da rede local Wi-Fi para exibir o link do App Mobile
-for /f "tokens=2 delims=:" %%a in ('powershell -NoProfile -ExecutionPolicy Bypass -Command "([System.Net.Dns]::GetHostAddresses([System.Net.Dns]::GetHostName()) | Where-Object { $_.AddressFamily -eq 'InterNetwork' -and $_.IPAddressToString -notlike '127.*' } | Select-Object -First 1).IPAddressToString" 2^>nul') do set LAN_IP=%%a
-if not defined LAN_IP set LAN_IP=192.168.x.x
+for /f "usebackq delims=" %%a in (`powershell -NoProfile -Command "(Get-NetIPAddress -AddressFamily IPv4 -InterfaceAlias '*Wi-Fi*').IPAddress" 2^>nul`) do set LAN_IP=%%a
+if not defined LAN_IP for /f "tokens=2 delims=:" %%a in ('ipconfig ^| findstr /c:"IPv4" 2^>nul') do if not defined LAN_IP set LAN_IP=%%a
+set LAN_IP=%LAN_IP: =%
 echo  ----------------------------------------------------------------
 echo  APP MOBILE (Tecnicos na mesma rede Wi-Fi):
-echo  - http://%LAN_IP%:3000/mobile
+echo  - Opcao 1 (Direto): http://%LAN_IP%/mobile
+echo  - Opcao 2 (Porta):  http://%LAN_IP%:3000/mobile
 echo  ----------------------------------------------------------------
 echo.
 

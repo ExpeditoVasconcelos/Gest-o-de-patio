@@ -26,6 +26,21 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Log em tempo real de conexões recebidas (diagnóstico de rede)
+app.use((req, res, next) => {
+  const clientIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress || req.ip;
+  const time = new Date().toLocaleTimeString('pt-BR');
+  if (!req.url.startsWith('/css') && !req.url.startsWith('/js') && !req.url.startsWith('/assets') && !req.url.startsWith('/favicon')) {
+    console.log(`[${time}] 📡 Conexão recebida: ${req.method} ${req.url} — De: ${clientIp}`);
+  }
+  next();
+});
+
+// Rota de teste/diagnóstico rápido
+app.get('/ping', (req, res) => {
+  res.type('text/plain').send('PONG - Servidor JB Cunha online e respondendo!');
+});
+
 // Uploads e arquivos estáticos
 const uploadsPath = config.UPLOADS_DIR;
 if (!fs.existsSync(uploadsPath)) {
@@ -93,6 +108,7 @@ apiRouter.get('/status', (req, res) => {
     sistema: 'Central de Operações JB Cunha',
     versao: '3.1.0',
     status: 'operacional',
+    ips: getLocalIPs(),
     timestamp: new Date().toISOString()
   });
 });
@@ -104,32 +120,71 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'web-app', 'index.html'));
 });
 
-// Helper: pega IPs locais da rede (excluindo loopback)
+// Helper: pega IPs reais locais da rede Wi-Fi/Ethernet (filtrando loopbacks e plugins bancarios como Topaz/Warsaw)
 function getLocalIPs() {
   const nets = os.networkInterfaces();
   const ips = [];
-  Object.values(nets).forEach(addrs => {
-    (addrs || []).forEach(a => {
-      if (a.family === 'IPv4' && !a.internal) ips.push(a.address);
+  Object.keys(nets).forEach(name => {
+    if (/topaz|warsaw|loopback|bluetooth|virtual|pseudo/i.test(name)) return;
+    (nets[name] || []).forEach(a => {
+      if (a.family === 'IPv4' && !a.internal && !a.address.startsWith('169.254')) {
+        if (/^(192\.168\.|10\.|172\.(1[6-9]|2[0-9]|3[0-1])\.)/.test(a.address)) {
+          ips.unshift(a.address);
+        } else {
+          ips.push(a.address);
+        }
+      }
     });
   });
-  return ips;
+  return Array.from(new Set(ips));
 }
 
-const PORT = config.PORT;
-app.listen(PORT, '0.0.0.0', () => {
+const PORT = config.PORT || 3000;
+const server = app.listen(PORT, '0.0.0.0', () => {
   const ips = getLocalIPs();
   const lanIp = ips[0] || 'localhost';
 
   console.log('================================================================');
-  console.log('  CENTRAL DE OPERAÇÕES JB CUNHA — v3.1');
+  console.log('  CENTRAL DE OPERAÇÕES JB CUNHA — v3.1 (PRODUÇÃO READY)');
   console.log(`  Painel Desktop:  http://localhost:${PORT}`);
   console.log(`  Modo TV:         http://localhost:${PORT}/#tv`);
   console.log('----------------------------------------------------------------');
   console.log('  ACESSO PELA REDE Wi-Fi (celulares dos técnicos):');
   ips.forEach(ip => {
-    console.log(`  App Mobile:      http://${ip}:${PORT}/mobile`);
+    console.log(`  Opção 1 (Porta 3000): http://${ip}:${PORT}/mobile`);
+    console.log(`  Opção 2 (Porta 80):   http://${ip}/mobile`);
   });
   console.log('  QR Code gerado automaticamente no App Mobile');
   console.log('================================================================');
 });
+
+// Suporte adicional e opcional na porta padrão 80 (permite acessar sem digitar :3000)
+try {
+  const server80 = app.listen(80, '0.0.0.0', () => {
+    console.log('  [PORTA 80 ATIVA] Celulares podem digitar apenas o IP sem ":3000"!');
+  });
+  server80.on('error', (err) => {
+    // Porta 80 já em uso ou restrita, mantendo apenas 3000
+  });
+} catch (e) {}
+
+// Encerramento seguro para Docker, PM2 e VPS (Graceful Shutdown)
+function gracefulShutdown(signal) {
+  console.log(`\n[Servidor] Recebido sinal ${signal}. Encerrando conexões e persistindo dados...`);
+  try {
+    storage.save();
+  } catch (_) {}
+  server.close(() => {
+    console.log('[Servidor] Encerrado com sucesso.');
+    process.exit(0);
+  });
+  setTimeout(() => {
+    console.warn('[Servidor] Encerramento forçado após timeout.');
+    process.exit(0);
+  }, 4000);
+}
+
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+
+

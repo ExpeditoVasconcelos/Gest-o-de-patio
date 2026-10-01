@@ -152,13 +152,14 @@ class AuthService {
       }
     }
 
-    // Se a base estiver vazia, cria administradores padrão: Manuel e Expedito
+    // Se a base estiver vazia, cria usuários padrão: Manuel (Aprovador), Expedito (Aprovador) e Operador (Solicitante)
     if (this.usuarios.length === 0) {
       this.seedAdministradoresPadrao();
     } else {
-      // Garante que Manuel e Expedito existam como admin caso tenham sido apagados
-      this.assegurarAdminExistente('manuel', 'Manuel');
-      this.assegurarAdminExistente('expedito', 'Expedito');
+      // Garante que Manuel, Expedito e Operador existam com seus papéis corretos
+      this.assegurarUsuarioExistente('manuel', 'Manuel', 'admin');
+      this.assegurarUsuarioExistente('expedito', 'Expedito', 'admin');
+      this.assegurarUsuarioExistente('operador', 'Operador Pátio', 'usuario');
     }
   }
 
@@ -204,14 +205,26 @@ class AuthService {
         criado_em: agora,
         atualizado_em: agora,
         ultimo_login: null
+      },
+      {
+        id: 3,
+        username: 'operador',
+        nome: 'Operador Pátio',
+        senha_hash: hash,
+        role: 'usuario',
+        empresa_vinculada: null,
+        ativo: true,
+        criado_em: agora,
+        atualizado_em: agora,
+        ultimo_login: null
       }
     ];
 
     this.salvar();
-    console.log('[AuthService] Usuários administradores iniciais configurados: manuel, expedito (senha inicial: jbc@2026)');
+    console.log('[AuthService] Usuários iniciais configurados: manuel (admin), expedito (admin), operador (solicitante) [senha: jbc@2026]');
   }
 
-  assegurarAdminExistente(username, nome) {
+  assegurarUsuarioExistente(username, nome, role = 'admin') {
     const u = this.usuarios.find(x => x.username.toLowerCase() === username.toLowerCase());
     if (!u) {
       const novo = {
@@ -219,7 +232,7 @@ class AuthService {
         username: username.toLowerCase(),
         nome: nome,
         senha_hash: hashSenha('jbc@2026'),
-        role: 'admin',
+        role: role,
         empresa_vinculada: null,
         ativo: true,
         criado_em: new Date().toISOString(),
@@ -228,10 +241,11 @@ class AuthService {
       };
       this.usuarios.push(novo);
       this.salvar();
-    } else if (u.role !== 'admin') {
-      u.role = 'admin';
-      this.salvar();
     }
+  }
+
+  assegurarAdminExistente(username, nome) {
+    this.assegurarUsuarioExistente(username, nome, 'admin');
   }
 
   proximoId() {

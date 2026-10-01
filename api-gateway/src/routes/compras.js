@@ -32,11 +32,12 @@ function notify(tipo, dados) {
   if (_pushUpdate) { try { _pushUpdate(tipo, dados); } catch (_) {} }
 }
 
-// Todas as rotas de compras diretas exigem autenticação e perfil de ADMINISTRADOR
+// Autenticação obrigatória: acessível para Aprovadores (admin) e Solicitantes (usuario).
+// Usuários do tipo 'cliente' são estritamente bloqueados.
 router.use(autenticar);
-router.use(exigirRole('admin'));
+router.use(exigirRole('admin', 'usuario'));
 
-// GET /compras
+// GET /compras — Listagem de compras (Aprovadores e Solicitantes)
 router.get('/', (req, res) => {
   const lista = storage.getComprasDiretas(req.query.status || null);
   const pendentes = storage.getComprasDiretasPendentesCount();
@@ -90,8 +91,8 @@ router.post('/', upload.single('foto'), (req, res) => {
   res.status(201).json({ success: true, data: nova, message: 'Solicitação de compra enviada com sucesso!' });
 });
 
-// PATCH /compras/:id/autorizar
-router.patch('/:id/autorizar', (req, res) => {
+// PATCH /compras/:id/autorizar — EXCLUSIVO APROVADOR (ADMIN)
+router.patch('/:id/autorizar', exigirRole('admin'), (req, res) => {
   const { valor_final, obs_aprovador } = req.body;
   const aprovadorNome = req.usuario.nome || req.usuario.username || 'Admin';
 
@@ -114,8 +115,8 @@ router.patch('/:id/autorizar', (req, res) => {
   });
 });
 
-// PATCH /compras/:id/declinar
-router.patch('/:id/declinar', (req, res) => {
+// PATCH /compras/:id/declinar — EXCLUSIVO APROVADOR (ADMIN)
+router.patch('/:id/declinar', exigirRole('admin'), (req, res) => {
   const { motivo_declinio } = req.body;
   const aprovadorNome = req.usuario.nome || req.usuario.username || 'Admin';
 
@@ -137,8 +138,8 @@ router.patch('/:id/declinar', (req, res) => {
   });
 });
 
-// DELETE /compras/:id
-router.delete('/:id', (req, res) => {
+// DELETE /compras/:id — EXCLUSIVO APROVADOR (ADMIN)
+router.delete('/:id', exigirRole('admin'), (req, res) => {
   const ok = storage.deleteCompraDireta(req.params.id);
   if (!ok) return res.status(404).json({ success: false, message: 'Solicitação não encontrada' });
   const pendentes = storage.getComprasDiretasPendentesCount();

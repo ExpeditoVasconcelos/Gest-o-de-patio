@@ -5,13 +5,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="Central de Operações JB Cunha — Controle operacional da oficina de manutenção pesada e serviços.">
   <script>
-    if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) && !location.search.includes('nomobile')) {
+    if (/Android|webOS|iPhone|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) && 
+        !location.search.includes('nomobile') && 
+        location.hash !== '#tv' && 
+        window.innerWidth < 768) {
       location.replace('/mobile');
     }
   </script>
   <title>JB Cunha — Central de Operações</title>
   <link rel="manifest" href="/manifest.json">
-  <link rel="stylesheet" href="/css/style.css?v=4.0">
+  <link rel="stylesheet" href="/css/style.css?v=5.1">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 </head>
@@ -679,6 +682,6 @@
   <!-- Toast de notificações -->
   <div id="toast-container" class="toast-container" aria-live="polite"></div>
 
-  <script src="/js/app.js?v=4.0"></script>
+  <script src="/js/app.js?v=5.1"></script>
 </body>
 </html>
