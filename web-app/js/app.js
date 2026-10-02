@@ -3583,8 +3583,8 @@ const App = {
     const lista = (this._equipamentos || []).filter(e => e.estado !== 'entregue');
     const novasSlides = [];
 
-    // Paginação inteligente do Panorama Geral se houver mais de 10 veículos:
-    const ITENS_POR_PAGINA_PANORAMA = 10;
+    // Paginação inteligente do Panorama Geral se houver mais de 8 veículos (2 colunas x 4 linhas):
+    const ITENS_POR_PAGINA_PANORAMA = 8;
     if (lista.length > ITENS_POR_PAGINA_PANORAMA) {
       const totalPags = Math.ceil(lista.length / ITENS_POR_PAGINA_PANORAMA);
       for (let p = 0; p < totalPags; p++) {
