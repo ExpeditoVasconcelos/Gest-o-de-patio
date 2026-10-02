@@ -24,6 +24,7 @@ Para aprofundamento técnico em cada disciplina, consulte os manuais dedicados n
 
 | Documento | Descrição e Conteúdo |
 |---|---|
+| ☁️ [**Infraestrutura & Suporte na Nuvem**](./docs/INFRAESTRUTURA_E_SUPORTE_NUVEM.md) | **Manual de Produção na Nuvem (VPS HostGator)**: Arquitetura, diretórios no host, serviços, redes, hardening NIST CSF 2.0 e manual de suporte/troubleshooting. |
 | 🏛️ [**Arquitetura do Sistema**](./docs/ARQUITETURA.md) | Diagramas em camadas, fluxos Mermaid, ciclo de vida de atendimentos, modelo relacional vs. flat-file e especificações criptográficas (`scrypt`, tokens HMAC-SHA256, RBAC). |
 | 💻 [**Guia de Desenvolvimento**](./docs/DESENVOLVIMENTO.md) | Configuração do ambiente, Design System (CSS Vanilla, temas Dark/Light), motor reativo, suíte automatizada de Q.A. (`test_qa_suite.js`) e padrões de código. |
 | 🏗️ [**Guia de Infraestrutura**](./docs/INFRAESTRUTURA.md) | Topologias de implantação: On-Premises Windows (oficina física), Servidor Linux/VPS com Nginx + PM2, Docker e Docker Compose, redes, Wi-Fi e planos de backup. |
