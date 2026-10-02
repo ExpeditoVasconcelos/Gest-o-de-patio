@@ -9,31 +9,36 @@ A aplicação da **Central de Operações JB Cunha** encontra-se em ambiente de 
 
 | Item | Especificação de Produção |
 | :--- | :--- |
+| **Domínio Oficial de Produção** | `https://patio.jbcunha.com.br` |
 | **Endereço IP Público** | `129.121.45.248` |
+| **Certificado Digital SSL/TLS** | Let's Encrypt TLS 1.3 (Emissão e renovação automática via ACME para `contato@jbcunha.com.br`) |
+| **Proxy Reverso & Borda SSL** | Caddy v2 (Alpine) com HTTP/2, HTTP/3 (QUIC) e HSTS |
+| **Portas Públicas** | `80` (HTTP com redirecionamento automático 308 para HTTPS) e `443` (HTTPS Seguro) |
 | **Porta SSH de Gerência** | `22022` *(Atenção: porta não-padrão por segurança)* |
 | **Usuário SSH** | `root` |
-| **Portas Web Públicas** | `80` (HTTP direto - dispensando informar porta) e `3000` (porta direta) |
 | **Sistema Operacional Host** | Rocky Linux 9.8 (Blue Onyx) — Kernel Linux 5.14 |
 | **Ambiente de Execução** | Docker CE 29.8.2 + Docker Compose Plugin v5.5.1 |
 | **Segurança Host** | Fail2Ban v1.0.2 com 23 jails ativas (incluindo jail `sshd`) |
-| **DNS Configurado** | `1.1.1.1` (Cloudflare) e `8.8.8.8` (Google DNS) via NetworkManager |
+| **DNS do Subdomínio** | Tipo `A`, Apontamento `patio` -> `129.121.45.248` (TTL 3600) |
 
-### 🌐 URLs de Acesso Público da Aplicação
+### 🌐 URLs Oficiais de Acesso Público da Aplicação (HTTPS Seguro)
 
 | Finalidade | URL de Acesso | Descrição Operacional |
 | :--- | :--- | :--- |
-| **Painel Desktop Principal** | `http://129.121.45.248/` | Gestão de pátio, abertura de OS, aprovação de orçamentos e relatórios |
-| **Aplicativo Mobile (PWA)** | `http://129.121.45.248/mobile` | Interface otimizada para smartphones e tablets dos mecânicos/técnicos |
-| **Modo TV (Zero-Scroll)** | `http://129.121.45.248/#tv` | Painel operacional fixo de baias para Smart TVs e monitores de galpão |
-| **Healthcheck da API** | `http://129.121.45.248/api/jbc/v1/status` | Endpoint de monitoramento contínuo de disponibilidade e integridade |
+| **Painel Desktop Principal** | `https://patio.jbcunha.com.br/` | Gestão de pátio, abertura de OS, aprovação de orçamentos e relatórios |
+| **Aplicativo Mobile (PWA)** | `https://patio.jbcunha.com.br/mobile` | Interface otimizada para smartphones e tablets dos mecânicos/técnicos |
+| **Modo TV (Zero-Scroll)** | `https://patio.jbcunha.com.br/#tv` | Painel operacional fixo de baias para Smart TVs e monitores de galpão |
+| **Healthcheck da API** | `https://patio.jbcunha.com.br/api/jbc/v1/status` | Endpoint de monitoramento contínuo de disponibilidade e integridade |
+
+> 🔒 *Qualquer requisição feita via `http://` é automaticamente redirecionada com código HTTP 308 (Permanent Redirect) para `https://`.*
 
 ---
 
-## 2. Arquitetura da Solução na Nuvem com Banco GLPI
+## 2. Arquitetura da Solução na Nuvem com Banco GLPI & SSL
 
 ```mermaid
 graph TD
-    UserClient[Navegadores Desktop / TV / Smartphones] -->|HTTP Porta 80 ou 3000| HostServer["Host VPS (Rocky Linux 9.8 - 129.121.45.248)"]
+    UserClient["Navegadores Desktop / TV / Smartphones\n(https://patio.jbcunha.com.br)"] -->|HTTPS Porta 443 / HTTP Porta 80| HostServer["Host VPS (Rocky Linux 9.8 - 129.121.45.248)"]
     
     subgraph HostServer["Host VPS (Rocky Linux 9.8)"]
         F2B["Fail2Ban (Proteção SSH Porta 22022)"]
@@ -41,9 +46,15 @@ graph TD
         DockerDaemon["Docker Engine 29.8.2"]
         
         subgraph DockerNet["Docker Bridge: jbcunha-net (Rede Privada Isolada)"]
-            subgraph WebAppContainer["Container: jbcunha-gestao-patio (User: jbcunha non-root)"]
+            subgraph ProxyContainer["Container: jbcunha-proxy (Caddy 2 Alpine)"]
+                ACME["ACME Let's Encrypt Client\n(contato@jbcunha.com.br)"]
+                TLS["Terminação TLS 1.3 + HTTP/3 QUIC + HSTS"]
+                Redirect["Redirect Automático HTTP 80 -> HTTPS 443"]
+            end
+            
+            subgraph WebAppContainer["Container: jbcunha-gestao-patio (Node 20 LTS - User non-root)"]
                 SecHeaders["Hardening HTTP Headers (OWASP) + Rate Limiter Global"]
-                ExpressApp["Node.js 20 LTS (Express API Gateway)"]
+                ExpressApp["Node.js 20 LTS (Express API Gateway - Porta 3000)"]
                 AuthEngine["AuthService (scrypt + HMAC-SHA256 + Dual-Layer Rate Limiting)"]
                 SSEBroadcaster["SSE Broadcaster (Notificações em Tempo Real)"]
                 GlpiDbConnector["GlpiDatabase Adapter (mysql2/promise Pool)"]
@@ -51,16 +62,18 @@ graph TD
             end
             
             subgraph DBContainer["Container: jbcunha-glpi-db (MariaDB 10.11 LTS - Oficial GLPI)"]
-                MariaDBEngine["MariaDB InnoDB Engine (Porta 3306 Interna)"]
+                MariaDBEngine["MariaDB InnoDB Engine (Porta 3306 Interna - NÃO exposta à Internet)"]
                 GLPITables["Schema GLPI 10.x:\n• glpi_tickets (Chamados/O.S.)\n• glpi_computers (Máquinas/Equipamentos)\n• glpi_tickettasks (Tarefas/Atividades)\n• glpi_ticketfollowups (Timeline/Histórico)\n• glpi_documents (Fotos/Laudos)\n• glpi_jbc_compras (Compras/Orçamentos)\n• glpi_locations (12 Baias do Pátio)\n• glpi_users (Usuários RBAC)"]
             end
         end
         
+        ProxyContainer -->|Proxy Reverso Interno: gestao-patio:3000| WebAppContainer
+        GlpiDbConnector -->|TCP 3306 Privado| MariaDBEngine
+        
         HostStorageDB["Volume Docker: glpi-db-data"] -->|Volume Persistente| MariaDBEngine
+        HostStorageCaddyData["Volume Docker: caddy_data (Certificados SSL)"] -->|Certificados TLS Persistentes| ACME
         HostStorageData["/opt/jbcunha-gestao-patio/api-gateway/data"] -->|Volume Persistente| VolData["/app/api-gateway/data (Cache JSON de Resiliência)"]
         HostStorageUploads["/opt/jbcunha-gestao-patio/web-app/uploads"] -->|Volume Persistente| VolUploads["/app/web-app/uploads (Fotos de vistorias e peças)"]
-        
-        GlpiDbConnector -->|TCP 3306 Privado| MariaDBEngine
     end
 ```
 
@@ -95,12 +108,15 @@ Toda a infraestrutura do sistema reside no diretório padrão `/opt`:
 /opt/
 ├── jbcunha-gestao-patio/             # Repositório clonado e aplicação ativa
 │   ├── .env                          # Variáveis de ambiente de produção (segredo JWT)
-│   ├── docker-compose.yml            # Orquestração do container de produção
+│   ├── Caddyfile                     # Configuração do Proxy Reverso Caddy com Let's Encrypt SSL
+│   ├── docker-compose.yml            # Orquestração dos 3 containers (proxy, web, db)
 │   ├── Dockerfile                    # Receita da imagem Node 20 Alpine segura
-│   ├── package.json                  # Dependências de produção
+│   ├── package.json                  # Dependências de produção (Express, mysql2, etc.)
+│   ├── database/
+│   │   └── init-glpi.sql             # DDL relacional oficial GLPI 10.x (tabelas e índices)
 │   ├── api-gateway/
 │   │   ├── server.js                 # Ponto de entrada do backend Express
-│   │   ├── data/                     # [VOLUME PERSISTENTE] Banco de dados JSON
+│   │   ├── data/                     # [VOLUME PERSISTENTE] Cache e resiliência JSON
 │   │   │   ├── database.json         # Base operacional do pátio
 │   │   │   ├── usuarios.json         # Cadastro de usuários e credenciais com hash
 │   │   │   └── .auth_secret          # Chave secreta de assinatura HMAC
@@ -108,7 +124,7 @@ Toda a infraestrutura do sistema reside no diretório padrão `/opt`:
 │   │       ├── config/               # Parâmetros de portas e diretórios
 │   │       ├── middlewares/          # Middlewares de autenticação e RBAC
 │   │       ├── routes/               # Rotas REST (/auth, /compras, /atendimentos, /mobile)
-│   │       └── services/             # AuthService, Storage, GLPI Bridge
+│   │       └── services/             # AuthService, Storage, GlpiDatabase Adapter
 │   ├── web-app/
 │   │   ├── index.html                # Painel Desktop & Modo TV
 │   │   ├── mobile.html               # Aplicativo Mobile PWA
@@ -183,15 +199,20 @@ ssh -p 22022 root@129.121.45.248
 ### 5.2. Como Verificar o Status da Aplicação
 
 ```bash
-# 1. Verificar se o container está rodando e saudável (healthy)
+# 1. Verificar se os 3 containers estão rodando e saudáveis (healthy)
 docker ps
 
-# Saída esperada:
+# Saída esperada (3 containers ativos):
 # CONTAINER ID   IMAGE                               COMMAND                  STATUS                    PORTS
-# xxxxxxxxxxxx   jbcunha-gestao-patio-gestao-patio   "docker-entrypoint.s…"   Up X hours (healthy)      0.0.0.0:80->3000/tcp, 0.0.0.0:3000->3000/tcp
+# xxxxxxxxxxxx   caddy:2-alpine                      "caddy run --config …"   Up X hours                0.0.0.0:80->80/tcp, 0.0.0.0:443->443/tcp, 0.0.0.0:443->443/udp
+# xxxxxxxxxxxx   jbcunha-gestao-patio-gestao-patio   "docker-entrypoint.s…"   Up X hours (healthy)      0.0.0.0:3000->3000/tcp
+# xxxxxxxxxxxx   mariadb:10.11                       "docker-entrypoint.s…"   Up X hours (healthy)      3306/tcp
 
-# 2. Testar resposta local da API
-curl -s http://127.0.0.1:3000/api/jbc/v1/status
+# 2. Testar resposta pública segura via HTTPS
+curl -s https://patio.jbcunha.com.br/api/jbc/v1/status
+
+# 3. Testar conexão com o banco relacional MariaDB GLPI
+docker exec -it jbcunha-glpi-db mariadb -u glpi -pjbcunha_glpi_secret_pass glpidb -e "SELECT count(*) AS total_tabelas FROM information_schema.tables WHERE table_schema='glpidb';"
 ```
 
 ---
@@ -199,14 +220,17 @@ curl -s http://127.0.0.1:3000/api/jbc/v1/status
 ### 5.3. Visualização de Logs em Tempo Real
 
 ```bash
-# Acompanhar logs ao vivo da aplicação:
+# Acompanhar logs ao vivo da aplicação web:
 docker logs -f jbcunha-gestao-patio
+
+# Acompanhar logs do proxy reverso SSL (Caddy):
+docker logs -f jbcunha-proxy
+
+# Acompanhar logs do banco de dados relacional (MariaDB GLPI):
+docker logs -f jbcunha-glpi-db
 
 # Filtrar apenas eventos e alertas de segurança:
 docker logs jbcunha-gestao-patio | grep "SEC-"
-
-# Ver últimas 100 linhas:
-docker logs --tail 100 jbcunha-gestao-patio
 ```
 
 ---
@@ -231,14 +255,14 @@ cd /opt/jbcunha-gestao-patio
 # 2. Baixar as alterações do repositório
 git pull origin main
 
-# 3. Recompilar a imagem e recriar o container sem perda de dados
+# 3. Recompilar a imagem e recriar os containers sem perda de dados
 docker compose up -d --build
 
 # 4. Validar o status após a atualização
 sleep 5
 docker ps
 ```
-> *Nota: Os volumes de dados (`api-gateway/data`) e uploads (`web-app/uploads`) são persistidos no host e não são afetados durante a recriação do container.*
+> *Nota: Os volumes de dados (`api-gateway/data`, `glpi-db-data`, `caddy_data`) e uploads (`web-app/uploads`) são persistidos e não são afetados durante a recriação do container.*
 
 ---
 
@@ -246,25 +270,27 @@ docker ps
 
 #### Cópia Manual de Backup Imediato:
 ```bash
-tar -czf /opt/backups/jbcunha/backup_manual_$(date +%Y%m%d_%H%M%S).tar.gz \
+# 1. Dump completo do Banco de Dados MariaDB GLPI
+docker exec jbcunha-glpi-db mariadb-dump -u glpi -pjbcunha_glpi_secret_pass glpidb > /opt/backups/jbcunha/backup_glpidb_$(date +%Y%m%d_%H%M%S).sql
+
+# 2. Compactação dos arquivos de dados, segredos e fotos
+tar -czf /opt/backups/jbcunha/backup_arquivos_$(date +%Y%m%d_%H%M%S).tar.gz \
   -C /opt/jbcunha-gestao-patio api-gateway/data web-app/uploads
 ```
 
 #### Restauração de Backup:
-Caso haja corrupção acidental de dados e seja necessário restaurar uma cópia:
+Caso haja necessidade de restaurar o banco relacional ou os arquivos:
 ```bash
-# 1. Parar a aplicação temporariamente
+# 1. Restaurar Dump SQL no MariaDB:
+docker exec -i jbcunha-glpi-db mariadb -u glpi -pjbcunha_glpi_secret_pass glpidb < /opt/backups/jbcunha/backup_glpidb_YYYYMMDD_HHMMSS.sql
+
+# 2. Restaurar arquivos e uploads:
+tar -xzf /opt/backups/jbcunha/backup_arquivos_YYYYMMDD_HHMMSS.tar.gz -C /opt/jbcunha-gestao-patio/
+chmod -R 777 /opt/jbcunha-gestao-patio/api-gateway/data /opt/jbcunha-gestao-patio/web-app/uploads
+
+# 3. Reiniciar os serviços
 cd /opt/jbcunha-gestao-patio
-docker compose stop
-
-# 2. Restaurar o arquivo de backup escolhido (exemplo com o arquivo de 02/10/2026)
-tar -xzf /opt/backups/jbcunha/backup_20261002.tar.gz -C /opt/jbcunha-gestao-patio/
-
-# 3. Ajustar permissões para garantir acesso do container
-chown -R 1000:1000 /opt/jbcunha-gestao-patio/api-gateway/data /opt/jbcunha-gestao-patio/web-app/uploads
-
-# 4. Iniciar a aplicação novamente
-docker compose start
+docker compose restart
 ```
 
 ---

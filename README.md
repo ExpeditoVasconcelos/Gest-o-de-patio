@@ -84,35 +84,36 @@ docker compose down
 
 ---
 
-## 🌐 Endereços e Dispositivos de Acesso
+## 🌐 Endereços de Acesso
 
-O sistema roda na máquina servidora e é servido para qualquer dispositivo conectado na mesma rede Wi-Fi da oficina:
-
-| Dispositivo / Finalidade | Endereço de Acesso | Descrição |
+### ☁️ Produção Oficial na Nuvem (HTTPS Seguro com Let's Encrypt):
+| Dispositivo / Finalidade | Endereço de Acesso Seguro | Descrição |
 |---|---|---|
-| **Computador do Chefe / Desktop** | `http://localhost:3000` | Gestão completa do Pátio, Dossiê Operacional e Compras |
-| **Televisão do Galpão (Modo TV)** | `http://localhost:3000/#tv` | Modo TV em tela cheia com auto-refresh (6s) e relógio operacional |
-| **Celular dos Técnicos (PWA)** | `http://<IP_LOCAL>:3000/mobile` | Interface touch para checklist rápido, troca de baia e fotos com câmera |
-| **Portal do Cliente** | `http://<IP_LOCAL>:3000` | Login com usuário cliente; exibe apenas o maquinário da empresa contratante |
-| **API Gateway** | `http://localhost:3000/api/jbc/v1` | Endpoints REST protegidos com RBAC |
-| **Healthcheck** | `http://localhost:3000/api/jbc/v1/status` | Verificação de disponibilidade e versão do sistema |
+| **Painel Desktop Principal** | `https://patio.jbcunha.com.br/` | Gestão completa do Pátio, Dossiê Operacional e Compras |
+| **Televisão do Galpão (Modo TV)** | `https://patio.jbcunha.com.br/#tv` | Modo TV em tela cheia com auto-refresh (6s) e relógio operacional (Zero-Scroll) |
+| **Celular dos Técnicos (PWA Mobile)** | `https://patio.jbcunha.com.br/mobile` | Interface touch para checklist rápido, troca de baia e fotos com câmera |
+| **Healthcheck da API** | `https://patio.jbcunha.com.br/api/jbc/v1/status` | Verificação de disponibilidade e integridade do sistema |
 
-> *Para descobrir o IP da sua máquina na rede local, execute `ipconfig` no prompt de comando (ex: `192.168.1.100`).*
+### 🏠 Acesso Local / Rede Interna de Oficina:
+| Dispositivo / Finalidade | Endereço de Acesso Local |
+|---|---|
+| **Computador Local** | `http://localhost:3000` |
+| **Modo TV Local** | `http://localhost:3000/#tv` |
+| **Celular dos Técnicos (Wi-Fi Local)** | `http://<IP_LOCAL>:3000/mobile` |
 
 ---
 
-## 🔐 Credenciais Padrão de Acesso
+## 🔐 Credenciais de Acesso de Produção
 
-O sistema vem pré-configurado com os seguintes perfis iniciais para o primeiro acesso:
+O ambiente de produção foi provisionado com as credenciais administrativas e operacionais oficiais:
 
 | Perfil | Usuário | Senha Padrão | Função no Sistema |
 |---|---|---|---|
-| **Administrador 1** | `manuel` | `jbc@2026` | Gerência Geral, autorização de compras diretas, gestão de usuários |
-| **Administrador 2** | `expedito` | `jbc@2026` | Administração técnica e operacional |
-| **Usuário Operacional** | `carlos_tec` | `jbc@2026` | Mecânico da oficina (execução, baias, checklists e fotos) |
-| **Cliente Exemplo** | `cliente_abc` | `jbc@2026` | Visualização restrita aos veículos da Empresa ABC Mineração |
+| **Administrador / Aprovador** | `manuel` | `jbc@2026` | Gerência Geral, autorização de compras diretas, gestão de usuários |
+| **Administrador / Operações** | `expedito` | `jbc@2026` | Administração técnica e operacional |
+| **Mecânico / Solicitante** | `operador` | `jbc@2026` | Operação de pátio (abertura de OS, baias, checklists e fotos) |
 
-*(A senha pode ser alterada a qualquer momento diretamente no menu do sistema).*
+*(A senha padrão pode ser alterada a qualquer momento no perfil do usuário autenticado).*
 
 ---
 
