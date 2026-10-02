@@ -508,8 +508,20 @@
 
       <!-- Controles TV & Relógio -->
       <div class="tv-header-right">
-        <!-- Controles de TV: Rolagem e Zoom -->
+        <!-- Controles de TV: Modo de Visualização, Rolagem e Zoom -->
         <div class="tv-controls-bar">
+          <!-- Alternador de Modo de Exibição: Grid de Baias vs Tabela -->
+          <div class="tv-mode-toggle-group" role="group" aria-label="Modo de visualização do pátio">
+            <button class="tv-ctrl-btn tv-mode-btn active" id="tv-btn-mode-grid" onclick="App.setTvViewMode('grid')" title="Visualização em Grid de Baias (Cards compactos sem rolagem)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="width:13px;height:13px"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/></svg>
+              <span>Grid Baias</span>
+            </button>
+            <button class="tv-ctrl-btn tv-mode-btn" id="tv-btn-mode-table" onclick="App.setTvViewMode('table')" title="Visualização em Tabela Operacional">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="width:13px;height:13px"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+              <span>Tabela</span>
+            </button>
+          </div>
+
           <button class="tv-ctrl-btn" id="tv-btn-autoscroll" onclick="App.toggleTvAutoScroll()" title="Pausar / Retomar Rolagem Automática (Espaço)">
             <span id="tv-scroll-icon"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg></span>
             <span id="tv-scroll-text">Rolagem</span>
@@ -560,12 +572,20 @@
       </div>
     </div>
 
-    <!-- Conteúdo dos Slides TV (Tabela ou Detalhes) -->
+    <!-- Conteúdo dos Slides TV (Panorama Geral ou Detalhes) -->
     <div class="tv-slides-viewport" id="tv-slides-viewport">
-      <!-- Slide 1: Tabela TV -->
+      <!-- Slide 1: Panorama Geral do Pátio -->
       <div class="tv-slide-pane" id="tv-slide-pane-table">
-        <div class="tv-table-wrap" id="tv-table-wrap">
-          <table class="tv-table" id="tv-table">
+        <!-- Visualização A: Grid Operacional de Baias / Pátio (Zero-Scroll Widescreen) -->
+        <div class="tv-grid-wrap" id="tv-grid-wrap">
+          <div class="tv-panorama-grid" id="tv-panorama-grid">
+            <!-- Preenchido dinamicamente por JS -->
+          </div>
+        </div>
+
+        <!-- Visualização B: Tabela Operacional Auto-Fit Zero-Scroll -->
+        <div class="tv-table-wrap zero-scroll-fit" id="tv-table-wrap" style="display:none">
+          <table class="tv-table zero-scroll-fit" id="tv-table">
             <thead>
               <tr>
                 <th class="tv-col-tag">Tag / OS</th>

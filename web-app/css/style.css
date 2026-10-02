@@ -3245,6 +3245,520 @@ code { font-family: var(--font-mono); font-size: .85em; }
 }
 
 /* ════════════════════════════════════════════════════════════════
+   TV PANORAMA GERAL — ZERO SCROLL ENGINE (GRID BAIAS & TABELA AUTO-FIT)
+   ════════════════════════════════════════════════════════════════ */
+
+/* Alternador de Modo de Exibição no Header TV */
+.tv-mode-toggle-group {
+  display: inline-flex;
+  align-items: center;
+  background: rgba(15, 23, 42, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 8px;
+  padding: 2px;
+  gap: 2px;
+}
+
+.tv-mode-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: #94a3b8;
+  font-family: var(--font-sans, inherit);
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.tv-mode-btn:hover {
+  color: #f1f5f9;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.tv-mode-btn.active {
+  background: #38bdf8;
+  color: #041326;
+  font-weight: 900;
+  box-shadow: 0 0 10px rgba(56, 189, 248, 0.4);
+}
+
+/* ─── GRID OPERACIONAL DE BAIAS (Widescreen 16:9 Zero-Scroll) ─── */
+.tv-grid-wrap {
+  flex: 1;
+  min-height: 0;
+  height: 100%;
+  width: 100%;
+  box-sizing: border-box;
+  overflow: hidden !important;
+  display: flex;
+  flex-direction: column;
+}
+
+.tv-panorama-grid {
+  flex: 1;
+  min-height: 0;
+  height: 100%;
+  width: 100%;
+  display: grid;
+  gap: clamp(6px, 1vh, 12px);
+  box-sizing: border-box;
+  overflow: hidden !important;
+  grid-template-columns: repeat(2, 1fr);
+  grid-template-rows: repeat(3, minmax(0, 1fr));
+}
+
+/* Card Operacional do Grid TV */
+.tv-grid-card {
+  background: linear-gradient(135deg, #0e172a 0%, #070d18 100%);
+  border: calc(1.5px * var(--tv-scale, 1)) solid rgba(255, 255, 255, 0.09);
+  border-radius: calc(10px * var(--tv-scale, 1));
+  padding: clamp(6px, 1vh, 12px) clamp(10px, 1.2vw, 16px);
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden !important;
+  cursor: pointer;
+  transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+  position: relative;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+}
+
+.tv-grid-card:hover {
+  background: linear-gradient(135deg, #131f38 0%, #0a1324 100%);
+  border-color: rgba(56, 189, 248, 0.4);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+}
+
+/* Borda lateral por estado operacional */
+.tv-grid-card.tv-estado-andamento  { border-left: calc(5px * var(--tv-scale, 1)) solid #38bdf8; }
+.tv-grid-card.tv-estado-aguardando { border-left: calc(5px * var(--tv-scale, 1)) solid #eab308; }
+.tv-grid-card.tv-estado-pronto     { border-left: calc(5px * var(--tv-scale, 1)) solid #22c55e; }
+.tv-grid-card.tv-estado-recebido   { border-left: calc(5px * var(--tv-scale, 1)) solid #94a3b8; }
+.tv-grid-card.tv-estado-entregue   { border-left: calc(5px * var(--tv-scale, 1)) solid #64748b; }
+.tv-grid-card.atrasado {
+  border-left: calc(6px * var(--tv-scale, 1)) solid #ef4444 !important;
+  box-shadow: 0 0 16px rgba(239, 68, 68, 0.25);
+  animation: pulse-red-border 2s infinite;
+}
+
+/* Cabeçalho do Card: Tag + OS + Prioridade | Baia + Status */
+.tv-grid-card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  padding-bottom: clamp(3px, 0.5vh, 6px);
+}
+
+.tv-grid-card-tag-row {
+  display: flex;
+  align-items: center;
+  gap: calc(0.4rem * var(--tv-scale, 1));
+}
+
+.tv-grid-tag {
+  font-family: var(--font-mono);
+  font-size: clamp(0.92rem, 1.8vh, calc(1.2rem * var(--tv-scale, 1)));
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  color: #ffffff;
+  background: rgba(56, 189, 248, 0.16);
+  border: 1.5px solid #38bdf8;
+  padding: 1px clamp(5px, 0.7vw, 9px);
+  border-radius: 6px;
+  box-shadow: 0 2px 6px rgba(56, 189, 248, 0.2);
+  white-space: nowrap;
+}
+
+.tv-grid-os {
+  font-family: var(--font-mono);
+  font-size: clamp(0.72rem, 1.3vh, calc(0.85rem * var(--tv-scale, 1)));
+  color: #94a3b8;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.tv-grid-prio {
+  font-size: clamp(0.65rem, 1.1vh, 0.75rem);
+  font-weight: 900;
+  text-transform: uppercase;
+  padding: 1px 5px;
+  border-radius: 4px;
+}
+.tv-grid-prio.urgente { background: #ef4444; color: #fff; animation: pulse-red 1.5s infinite; }
+.tv-grid-prio.alta    { background: #f97316; color: #fff; }
+
+.tv-grid-card-badges {
+  display: flex;
+  align-items: center;
+  gap: calc(0.4rem * var(--tv-scale, 1));
+}
+
+.tv-grid-local {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(14, 165, 233, 0.15);
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  color: #38bdf8;
+  padding: 2px clamp(6px, 0.7vw, 10px);
+  border-radius: 6px;
+  font-size: clamp(0.75rem, 1.4vh, calc(0.9rem * var(--tv-scale, 1)));
+  font-weight: 800;
+  white-space: nowrap;
+}
+.tv-grid-local svg { width: 12px; height: 12px; }
+
+.tv-grid-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px clamp(6px, 0.7vw, 10px);
+  border-radius: 99px;
+  font-size: clamp(0.72rem, 1.3vh, calc(0.85rem * var(--tv-scale, 1)));
+  font-weight: 900;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.tv-grid-status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.tv-grid-status.tv-estado-andamento  { background: rgba(14,165,233,0.2); color: #38bdf8; border: 1px solid #0ea5e9; }
+.tv-grid-status.tv-estado-andamento .tv-grid-status-dot { background: #38bdf8; box-shadow: 0 0 6px #38bdf8; animation: pulse-blue 1.5s infinite; }
+.tv-grid-status.tv-estado-aguardando { background: rgba(234,179,8,0.2); color: #facc15; border: 1px solid #eab308; }
+.tv-grid-status.tv-estado-aguardando .tv-grid-status-dot { background: #facc15; box-shadow: 0 0 6px #facc15; }
+.tv-grid-status.tv-estado-pronto     { background: rgba(34,197,94,0.2); color: #4ade80; border: 1px solid #22c55e; }
+.tv-grid-status.tv-estado-pronto .tv-grid-status-dot { background: #4ade80; box-shadow: 0 0 6px #4ade80; }
+.tv-grid-status.tv-estado-recebido   { background: rgba(148,163,184,0.18); color: #cbd5e1; border: 1px solid #64748b; }
+.tv-grid-status.tv-estado-recebido .tv-grid-status-dot { background: #94a3b8; }
+.tv-grid-status.tv-estado-atrasado   { background: rgba(239,68,68,0.25); color: #fca5a5; border: 1px solid #ef4444; }
+.tv-grid-status.tv-estado-atrasado .tv-grid-status-dot { background: #ef4444; box-shadow: 0 0 8px #ef4444; animation: pulse-red 1.5s infinite; }
+
+/* Corpo do Card: Equipamento + Cliente + Serviços */
+.tv-grid-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(2px, 0.4vh, 5px);
+  flex: 1;
+  min-height: 0;
+  justify-content: center;
+  padding: clamp(2px, 0.4vh, 6px) 0;
+}
+
+.tv-grid-mch-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: nowrap;
+}
+
+.tv-grid-mch-title {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+  flex: 1;
+}
+
+.tv-grid-mch-name {
+  font-size: clamp(0.92rem, 1.7vh, calc(1.12rem * var(--tv-scale, 1)));
+  font-weight: 800;
+  color: #f1f5f9;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tv-grid-mch-extra {
+  font-family: var(--font-mono);
+  font-size: clamp(0.7rem, 1.1vh, 0.8rem);
+  color: #94a3b8;
+  white-space: nowrap;
+}
+
+.tv-grid-client-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.tv-grid-client {
+  font-size: clamp(0.85rem, 1.5vh, calc(1rem * var(--tv-scale, 1)));
+  font-weight: 900;
+  color: #ffffff;
+  letter-spacing: -0.01em;
+}
+
+.tv-grid-tech {
+  font-size: clamp(0.75rem, 1.3vh, calc(0.85rem * var(--tv-scale, 1)));
+  color: #94a3b8;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+.tv-grid-tech svg { width: 11px; height: 11px; }
+
+/* Linha de Serviços em Chips Compactos */
+.tv-grid-services-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+  overflow: hidden;
+  max-height: clamp(26px, 4.2vh, 48px);
+}
+
+.tv-grid-srv-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 7px;
+  border-radius: 4px;
+  font-size: clamp(0.68rem, 1.2vh, calc(0.8rem * var(--tv-scale, 1)));
+  background: #141f32;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #e2e8f0;
+  white-space: nowrap;
+  max-width: 100%;
+}
+.tv-grid-srv-pill.tv-estado-pronto     { border-left: 3px solid #22c55e; }
+.tv-grid-srv-pill.tv-estado-andamento  { border-left: 3px solid #38bdf8; }
+.tv-grid-srv-pill.tv-estado-aguardando { border-left: 3px solid #eab308; }
+.tv-grid-srv-pill.tv-estado-atrasado   { border-left: 3px solid #ef4444; }
+.tv-grid-srv-pill.neutro               { border-left: 3px solid #64748b; color: #94a3b8; }
+
+.tv-grid-srv-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #38bdf8;
+  flex-shrink: 0;
+}
+.tv-grid-srv-pill.tv-estado-pronto .tv-grid-srv-dot     { background: #22c55e; }
+.tv-grid-srv-pill.tv-estado-aguardando .tv-grid-srv-dot { background: #eab308; }
+.tv-grid-srv-pill.tv-estado-atrasado .tv-grid-srv-dot   { background: #ef4444; }
+
+.tv-grid-srv-name {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 220px;
+}
+
+.tv-grid-srv-badge {
+  font-size: 0.72em;
+  font-weight: 800;
+  padding: 1px 4px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.1);
+  color: #f1f5f9;
+}
+
+.tv-grid-srv-tec {
+  font-size: 0.72em;
+  color: #94a3b8;
+  margin-left: 2px;
+}
+
+/* Rodapé do Card: Progresso + Atualização */
+.tv-grid-card-foot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  padding-top: clamp(2px, 0.4vh, 6px);
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.tv-grid-prog-wrap {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.tv-grid-prog-bar {
+  flex: 1;
+  height: clamp(6px, 1vh, 9px);
+  background: #172238;
+  border-radius: 99px;
+  overflow: hidden;
+  border: 1px solid #28374d;
+}
+
+.tv-grid-prog-fill {
+  height: 100%;
+  border-radius: 99px;
+  background: linear-gradient(90deg, #f97316 0%, #22c55e 100%);
+  box-shadow: 0 0 8px rgba(34, 197, 94, 0.4);
+}
+
+.tv-grid-prog-pct {
+  font-family: var(--font-mono);
+  font-size: clamp(0.8rem, 1.4vh, calc(0.95rem * var(--tv-scale, 1)));
+  font-weight: 900;
+  color: #ffffff;
+  min-width: 36px;
+  text-align: right;
+}
+
+.tv-grid-time {
+  font-family: var(--font-mono);
+  font-size: clamp(0.7rem, 1.2vh, calc(0.82rem * var(--tv-scale, 1)));
+  color: #94a3b8;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  white-space: nowrap;
+}
+.tv-grid-time svg { width: 11px; height: 11px; }
+
+/* ─── TABELA OPERACIONAL ZERO-SCROLL AUTO-FIT ─── */
+.tv-table-wrap.zero-scroll-fit {
+  flex: 1;
+  min-height: 0;
+  height: 100%;
+  width: 100%;
+  box-sizing: border-box;
+  overflow: hidden !important;
+  display: flex;
+  flex-direction: column;
+  padding: clamp(4px, 0.8vh, 10px) clamp(8px, 1.2vw, 16px);
+}
+
+.tv-table.zero-scroll-fit {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  border-spacing: 0;
+  border-collapse: separate;
+}
+
+.tv-table.zero-scroll-fit thead {
+  flex-shrink: 0;
+}
+
+.tv-table.zero-scroll-fit thead tr {
+  display: flex;
+  width: 100%;
+  align-items: center;
+}
+
+.tv-table.zero-scroll-fit thead th {
+  padding: clamp(3px, 0.6vh, 8px) clamp(6px, 0.8vw, 12px);
+  font-size: clamp(0.72rem, 1.25vh, calc(0.85rem * var(--tv-scale, 1)));
+  border-bottom: 2px solid #334155;
+  background: #060911;
+}
+
+.tv-table.zero-scroll-fit tbody {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: clamp(2px, 0.5vh, 6px);
+  padding: clamp(2px, 0.4vh, 6px) 0;
+}
+
+.tv-table.zero-scroll-fit tbody tr {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  background: #0e1526;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+  margin-bottom: 0;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.tv-table.zero-scroll-fit tbody tr td {
+  padding: clamp(2px, 0.6vh, 8px) clamp(6px, 0.8vw, 12px);
+  border: none;
+  font-size: clamp(0.78rem, 1.35vh, calc(0.92rem * var(--tv-scale, 1)));
+}
+
+/* Proporções de colunas da Tabela Zero-Scroll */
+.tv-table.zero-scroll-fit .tv-col-tag     { flex: 0 0 11%; min-width: 95px; }
+.tv-table.zero-scroll-fit .tv-col-empresa { flex: 0 0 11%; min-width: 105px; }
+.tv-table.zero-scroll-fit .tv-col-equip   { flex: 0 0 13%; min-width: 115px; }
+.tv-table.zero-scroll-fit .tv-col-servico { flex: 1 1 25%; min-width: 180px; }
+.tv-table.zero-scroll-fit .tv-col-resp    { flex: 0 0 10%; min-width: 95px; }
+.tv-table.zero-scroll-fit .tv-col-local   { flex: 0 0 9%;  min-width: 85px; }
+.tv-table.zero-scroll-fit .tv-col-estado  { flex: 0 0 10%; min-width: 105px; }
+.tv-table.zero-scroll-fit .tv-col-prog    { flex: 0 0 11%; min-width: 105px; }
+.tv-table.zero-scroll-fit .tv-col-atu     { flex: 0 0 7%;  min-width: 65px; }
+
+/* Chips de Serviços inline na Tabela Zero-Scroll */
+.tv-srv-inline-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+  max-height: clamp(24px, 4vh, 48px);
+  overflow: hidden;
+}
+
+.tv-srv-mini-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: clamp(0.68rem, 1.15vh, 0.8rem);
+  background: #162032;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  white-space: nowrap;
+}
+.tv-srv-mini-chip.tv-estado-pronto     { border-left: 3px solid #22c55e; }
+.tv-srv-mini-chip.tv-estado-andamento  { border-left: 3px solid #38bdf8; }
+.tv-srv-mini-chip.tv-estado-aguardando { border-left: 3px solid #eab308; }
+.tv-srv-mini-chip.tv-estado-atrasado   { border-left: 3px solid #ef4444; }
+
+.tv-srv-mini-chip .dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.tv-srv-mini-chip strong {
+  font-weight: 700;
+  color: #fff;
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tv-srv-mini-chip em {
+  font-style: normal;
+  font-size: 0.8em;
+  opacity: 0.8;
+}
+
+/* ════════════════════════════════════════════════════════════════
    TV SLIDES & ZOOM — EXIBIÇÃO TOTAL & ESCALA DINÂMICA
    ════════════════════════════════════════════════════════════════ */
 

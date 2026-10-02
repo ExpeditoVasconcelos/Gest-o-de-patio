@@ -216,10 +216,11 @@ const App = {
   tvAtivo: false,
   tvTimerInterval: null,
   tvPollingInterval: null,
-  tvAutoScrollAtivo: true,
+  tvAutoScrollAtivo: false, // Zero-scroll grid elimina necessidade de auto-scroll contínuo
   tvScrollTimer: null,
   tvZoomLevels: [0.65, 0.8, 0.95, 1.1, 1.25, 1.5, 1.85],
   tvZoomIndex: 2, // Padrão dinâmico calculado por detectarZoomIdealTela()
+  tvViewMode: localStorage.getItem('jbc_tv_view_mode') || 'grid', // 'grid' | 'table'
 
   // ── Autenticação & Sessão ─────────────────────────────────────────
   token: localStorage.getItem('jbc_auth_token') || null,
@@ -3067,6 +3068,12 @@ const App = {
     }
     this.aplicarZoomTv();
 
+    const mode = this.tvViewMode || 'grid';
+    const btnGrid = $id('tv-btn-mode-grid');
+    const btnTable = $id('tv-btn-mode-table');
+    if (btnGrid) btnGrid.classList.toggle('active', mode === 'grid');
+    if (btnTable) btnTable.classList.toggle('active', mode === 'table');
+
     this.carregarTv();
     this.tvPollingInterval = setInterval(() => this.carregarTv(), 20000);
     this.iniciarTvAutoScroll();
@@ -3115,6 +3122,8 @@ const App = {
     };
     setScale('tv-overlay');
     setScale('tv-table-wrap');
+    setScale('tv-grid-wrap');
+    setScale('tv-panorama-grid');
     setScale('tv-slides-viewport');
     setScale('tv-machines-grid');
     setScale('tv-slide-pane-detalhes');
@@ -3187,11 +3196,11 @@ const App = {
 
     this.tvScrollTimer = setInterval(() => {
       if (!this.tvAtivo || !this.tvAutoScrollAtivo) return;
-      const wrap = $id('tv-table-wrap');
+      const wrap = this.tvViewMode === 'grid' ? $id('tv-grid-wrap') : $id('tv-table-wrap');
       if (!wrap) return;
 
       const maxScroll = wrap.scrollHeight - wrap.clientHeight;
-      if (maxScroll <= 15) return; // Todo o conteúdo já cabe na tela da TV
+      if (maxScroll <= 15) return; // Zero-Scroll Perfeito: todo o conteúdo já cabe na tela da TV sem rolagem
 
       if (pausa > 0) {
         pausa--;
@@ -3253,11 +3262,8 @@ const App = {
     setKpi('tv-kpi-atrasados',  totais.atrasados    || 0);
     setKpi('tv-kpi-entregues',  totais.entregues    || 0);
 
-    // Tabela Operacional de Alta Legibilidade
-    const tbody = $id('tv-table-body');
-    if (tbody) {
-      tbody.innerHTML = eq.map(e => this._renderTvLinha(e)).join('');
-    }
+    // Renderiza o Panorama Geral no modo selecionado (Grid Baias ou Tabela Auto-Fit)
+    this.renderizarTvPanoramaConteudo(eq);
 
     // Radar Ticker no Rodapé
     const tickerEl = $id('tv-ticker-content');
@@ -3287,7 +3293,165 @@ const App = {
     this.iniciarLoopSlides();
   },
 
-  _renderTvLinha(eq) {
+  setTvViewMode(mode) {
+    if (mode !== 'grid' && mode !== 'table') mode = 'grid';
+    this.tvViewMode = mode;
+    localStorage.setItem('jbc_tv_view_mode', mode);
+
+    const btnGrid = $id('tv-btn-mode-grid');
+    const btnTable = $id('tv-btn-mode-table');
+    if (btnGrid) btnGrid.classList.toggle('active', mode === 'grid');
+    if (btnTable) btnTable.classList.toggle('active', mode === 'table');
+
+    const gridWrap = $id('tv-grid-wrap');
+    const tableWrap = $id('tv-table-wrap');
+    if (gridWrap) gridWrap.style.display = mode === 'grid' ? 'flex' : 'none';
+    if (tableWrap) tableWrap.style.display = mode === 'table' ? 'flex' : 'none';
+
+    // Re-renderizar o conteúdo atual do slide
+    const slide = this.slides && this.slides[this.slideAtual];
+    const lista = (slide && slide.itens) ? slide.itens : (this._equipamentos || []).filter(e => e.estado !== 'entregue');
+    this.renderizarTvPanoramaConteudo(lista);
+    this.aplicarZoomTv();
+  },
+
+  calcularGridDimensoes(totalItens) {
+    if (totalItens <= 2) return { cols: 1, rows: totalItens };
+    if (totalItens <= 4) return { cols: 2, rows: 2 };
+    if (totalItens <= 6) return { cols: 2, rows: 3 };
+    if (totalItens <= 8) return { cols: 2, rows: 4 };
+    if (totalItens <= 10) return { cols: 2, rows: 5 };
+    if (totalItens <= 12) return { cols: 3, rows: 4 };
+    return { cols: 4, rows: Math.ceil(totalItens / 4) };
+  },
+
+  renderizarTvPanoramaConteudo(itens) {
+    const lista = itens || (this._equipamentos || []).filter(e => e.estado !== 'entregue');
+    const mode = this.tvViewMode || 'grid';
+
+    const btnGrid = $id('tv-btn-mode-grid');
+    const btnTable = $id('tv-btn-mode-table');
+    if (btnGrid) btnGrid.classList.toggle('active', mode === 'grid');
+    if (btnTable) btnTable.classList.toggle('active', mode === 'table');
+
+    const gridWrap = $id('tv-grid-wrap');
+    const tableWrap = $id('tv-table-wrap');
+    if (gridWrap) gridWrap.style.display = mode === 'grid' ? 'flex' : 'none';
+    if (tableWrap) tableWrap.style.display = mode === 'table' ? 'flex' : 'none';
+
+    if (mode === 'grid') {
+      const grid = $id('tv-panorama-grid');
+      if (grid) {
+        if (lista.length === 0) {
+          grid.style.display = 'flex';
+          grid.innerHTML = `<div class="empty-state" style="padding:3rem"><p>Nenhum equipamento alocado no pátio no momento.</p></div>`;
+        } else {
+          grid.style.display = 'grid';
+          const dims = this.calcularGridDimensoes(lista.length);
+          grid.style.gridTemplateColumns = `repeat(${dims.cols}, 1fr)`;
+          grid.style.gridTemplateRows = `repeat(${dims.rows}, minmax(0, 1fr))`;
+          grid.innerHTML = lista.map(e => this._renderTvGridCard(e)).join('');
+        }
+      }
+    } else {
+      const tbody = $id('tv-table-body');
+      if (tbody) {
+        if (lista.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:2rem;color:#94a3b8">Nenhum equipamento alocado no pátio.</td></tr>`;
+        } else {
+          const isCompact = lista.length >= 5;
+          tbody.innerHTML = lista.map(e => this._renderTvLinha(e, isCompact)).join('');
+        }
+      }
+    }
+  },
+
+  _renderTvGridCard(eq) {
+    const estadoClass = tvClasseEstado(eq.estado, eq.atrasado);
+    const estadoLabel = eq.atrasado ? 'ATRASADO' : (LABEL_ESTADO[eq.estado] || eq.estado);
+    const progresso   = eq.progresso || 0;
+    const prio        = eq.prioridade === 'Urgente'
+      ? `<span class="tv-grid-prio urgente">URGENTE</span>`
+      : eq.prioridade === 'Alta'
+      ? `<span class="tv-grid-prio alta">ALTA</span>`
+      : '';
+
+    const responsavel = eq.responsavel_atual || eq.responsavel_tecnico || 'Equipe técnica';
+    const localizacao = eq.localizacao || 'Pátio';
+    const numOs       = eq.num_os ? `OS ${eq.num_os}` : (eq.numero || '');
+    const extraInfo   = [eq.placa, eq.horimetro, eq.km].filter(Boolean).join(' · ');
+
+    const srvLista = eq.servicos_lista || [];
+    const servicosHtml = srvLista.length === 0
+      ? `<div class="tv-grid-srv-pill neutro">${renderIcon('wrench')} <span>${escapar(eq.queixa_inicial || 'Em atendimento')}</span></div>`
+      : srvLista.map(s => {
+          const sCls = tvClasseEstado(s.estado, false);
+          const sLbl = LABEL_ESTADO[s.estado] || s.estado;
+          const sProg = s.progresso !== undefined ? ` · ${s.progresso}%` : '';
+          return `
+            <div class="tv-grid-srv-pill ${sCls}" title="${escapar(s.titulo)} (${sLbl})">
+              <span class="tv-grid-srv-dot"></span>
+              <span class="tv-grid-srv-name">${escapar(s.titulo)}</span>
+              <span class="tv-grid-srv-badge">${sLbl}${sProg}</span>
+              ${s.responsavel ? `<span class="tv-grid-srv-tec">${escapar(s.responsavel)}</span>` : ''}
+            </div>`;
+        }).join('');
+
+    return `
+    <div class="tv-grid-card ${estadoClass} ${eq.atrasado ? 'atrasado' : ''}" onclick="App.abrirDetalheFromTv(${eq.id})" title="Clique para abrir detalhes de ${escapar(eq.tag)}">
+      <!-- Card Top: Tag + OS + Prioridade | Baia + Status -->
+      <div class="tv-grid-card-head">
+        <div class="tv-grid-card-tag-row">
+          <span class="tv-grid-tag">${escapar(eq.tag)}</span>
+          ${numOs ? `<span class="tv-grid-os">${escapar(numOs)}</span>` : ''}
+          ${prio}
+        </div>
+        <div class="tv-grid-card-badges">
+          <span class="tv-grid-local">
+            ${renderIcon('pin')}
+            <span>${escapar(localizacao)}</span>
+          </span>
+          <div class="tv-grid-status ${estadoClass}">
+            <span class="tv-grid-status-dot"></span>
+            <span>${estadoLabel}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Card Middle: Equipamento + Cliente + Serviços -->
+      <div class="tv-grid-card-body">
+        <div class="tv-grid-mch-meta">
+          <div class="tv-grid-mch-title">
+            <span class="tv-grid-mch-name">${escapar(eq.equipamento)}</span>
+            ${extraInfo ? `<span class="tv-grid-mch-extra">${escapar(extraInfo)}</span>` : ''}
+          </div>
+          <div class="tv-grid-client-row">
+            <span class="tv-grid-client">${escapar(eq.empresa)}</span>
+            <span class="tv-grid-tech">${renderIcon('wrench')} ${escapar(responsavel)}</span>
+          </div>
+        </div>
+
+        <div class="tv-grid-services-row">
+          ${servicosHtml}
+        </div>
+      </div>
+
+      <!-- Card Bottom: Barra de Progresso + % + Atualização -->
+      <div class="tv-grid-card-foot">
+        <div class="tv-grid-prog-wrap">
+          <div class="tv-grid-prog-bar">
+            <div class="tv-grid-prog-fill" style="width:${progresso}%"></div>
+          </div>
+          <span class="tv-grid-prog-pct">${progresso}%</span>
+        </div>
+        <span class="tv-grid-time">
+          ${renderIcon('clock')} ${eq.ultima_atualizacao_label || '—'}
+        </span>
+      </div>
+    </div>`;
+  },
+
+  _renderTvLinha(eq, isCompact = false) {
     const estadoClass = tvClasseEstado(eq.estado, eq.atrasado);
     const estadoLabel = eq.atrasado ? 'ATRASADO' : (LABEL_ESTADO[eq.estado] || eq.estado);
     const progresso   = eq.progresso || 0;
@@ -3302,62 +3466,81 @@ const App = {
     const numOs       = eq.num_os ? `OS ${eq.num_os}` : (eq.numero || '');
     const extraInfo   = [eq.placa, eq.horimetro, eq.km].filter(Boolean).join(' · ');
 
+    const srvLista = eq.servicos_lista || [];
+    let servicosColHtml = '';
+
+    if (isCompact) {
+      if (srvLista.length === 0) {
+        servicosColHtml = `<div class="tv-srv-inline-chips"><span class="tv-srv-mini-chip neutro"><span>${escapar(eq.queixa_inicial || 'Em atendimento')}</span></span></div>`;
+      } else {
+        servicosColHtml = `<div class="tv-srv-inline-chips">${srvLista.map(s => {
+          const sCls = tvClasseEstado(s.estado, false);
+          const sLbl = LABEL_ESTADO[s.estado] || s.estado;
+          return `
+            <span class="tv-srv-mini-chip ${sCls}" title="${escapar(s.titulo)} (${sLbl})">
+              <span class="dot"></span>
+              <strong>${escapar(s.titulo)}</strong>
+              <em>(${sLbl})</em>
+              ${s.responsavel ? `· ${escapar(s.responsavel)}` : ''}
+            </span>`;
+        }).join('')}</div>`;
+      }
+    } else {
+      if (srvLista.length === 0) {
+        servicosColHtml = `<div class="tv-servico-box"><div class="tv-servico">${escapar(eq.queixa_inicial || 'Em atendimento')}</div></div>`;
+      } else {
+        servicosColHtml = `<div class="tv-servicos-col">${srvLista.map(s => {
+          const sCls = tvClasseEstado(s.estado, false);
+          const sLbl = LABEL_ESTADO[s.estado] || s.estado;
+          return `
+            <div class="tv-srv-chip ${sCls}">
+              <div class="tv-srv-chip-top">
+                <span class="tv-srv-chip-title">${escapar(s.titulo)}</span>
+                <span class="tv-srv-chip-badge">${sLbl}</span>
+              </div>
+              ${s.responsavel || s.atividade_ativa ? `
+              <div class="tv-srv-chip-sub">
+                ${s.responsavel ? `<span class="tv-srv-tec">${renderIcon('wrench')} ${escapar(s.responsavel)}</span>` : ''}
+                ${s.atividade_ativa ? `<span class="tv-srv-atv">↳ ${renderIcon('gear')} ${escapar(s.atividade_ativa)}</span>` : ''}
+              </div>` : ''}
+            </div>`;
+        }).join('')}</div>`;
+      }
+    }
+
     return `
     <tr class="${eq.atrasado ? 'tv-row-atrasado' : ''}" onclick="App.abrirDetalheFromTv(${eq.id})" title="Clique para abrir detalhes">
-      <td>
+      <td class="tv-col-tag">
         <div class="tv-tag-cell">
           <span class="tv-tag">${escapar(eq.tag)}</span>
           ${numOs ? `<span class="tv-os-sub">${escapar(numOs)}</span>` : ''}
           ${prio}
         </div>
       </td>
-      <td>
+      <td class="tv-col-empresa">
         <span class="tv-empresa-name">${escapar(eq.empresa)}</span>
         ${eq.responsavel_cliente ? `<span class="tv-cliente-contato">${renderIcon('user')} ${escapar(eq.responsavel_cliente)}</span>` : ''}
       </td>
-      <td>
+      <td class="tv-col-equip">
         <span class="tv-equip-name">${escapar(eq.equipamento)}</span>
         ${extraInfo ? `<span class="tv-equip-extra">${escapar(extraInfo)}</span>` : ''}
       </td>
-      <td>
-        <div class="tv-servicos-col">
-          ${(() => {
-            const srvLista = eq.servicos_lista || [];
-            if (srvLista.length === 0) {
-              return `<div class="tv-servico-box"><div class="tv-servico">${escapar(eq.queixa_inicial || 'Em atendimento')}</div></div>`;
-            }
-            return srvLista.map(s => {
-              const sCls = tvClasseEstado(s.estado, false);
-              const sLbl = LABEL_ESTADO[s.estado] || s.estado;
-              return `
-              <div class="tv-srv-chip ${sCls}">
-                <div class="tv-srv-chip-top">
-                  <span class="tv-srv-chip-title">${escapar(s.titulo)}</span>
-                  <span class="tv-srv-chip-badge">${sLbl}</span>
-                </div>
-                ${s.responsavel || s.atividade_ativa ? `
-                <div class="tv-srv-chip-sub">
-                  ${s.responsavel ? `<span class="tv-srv-tec">${renderIcon('wrench')} ${escapar(s.responsavel)}</span>` : ''}
-                  ${s.atividade_ativa ? `<span class="tv-srv-atv">↳ ${renderIcon('gear')} ${escapar(s.atividade_ativa)}</span>` : ''}
-                </div>` : ''}
-              </div>`;
-            }).join('');
-          })()}
-        </div>
+      <td class="tv-col-servico">
+        ${servicosColHtml}
       </td>
-      <td>
+      <td class="tv-col-resp">
         <span class="tv-resp-badge">
           <span>${renderIcon('tech')}</span>
           <span>${escapar(responsavel)}</span>
         </span>
       </td>
-      <td>
+      <td class="tv-col-local">
         <span class="tv-local-badge">
           <span>${renderIcon('pin')}</span>
           <span>${escapar(localizacao)}</span>
         </span>
       </td>
-      <td>
+      <td class="tv-col-estado">
         <div class="tv-estado-wrap">
           <div class="tv-estado-badge ${estadoClass}">
             <div class="tv-estado-dot"></div>
@@ -3366,7 +3549,7 @@ const App = {
           ${eq.estado_motivo ? `<div class="tv-estado-motivo">${renderIcon('alert')} ${escapar(eq.estado_motivo)}</div>` : ''}
         </div>
       </td>
-      <td>
+      <td class="tv-col-prog">
         <div class="tv-prog-wrap">
           <div class="tv-prog-bar">
             <div class="tv-prog-fill" style="width:${progresso}%"></div>
@@ -3374,7 +3557,7 @@ const App = {
           <span class="tv-prog-pct">${progresso}%</span>
         </div>
       </td>
-      <td>
+      <td class="tv-col-atu">
         <span class="tv-atualizacao">${eq.ultima_atualizacao_label ? `${renderIcon('clock')} ${eq.ultima_atualizacao_label}` : '—'}</span>
       </td>
     </tr>`;
@@ -3398,9 +3581,31 @@ const App = {
     }
 
     const lista = (this._equipamentos || []).filter(e => e.estado !== 'entregue');
-    const novasSlides = [
-      { id: 0, tipo: 'geral', titulo: '1. Panorama Geral', subtitulo: `${lista.length} equipamentos no pátio` }
-    ];
+    const novasSlides = [];
+
+    // Paginação inteligente do Panorama Geral se houver mais de 10 veículos:
+    const ITENS_POR_PAGINA_PANORAMA = 10;
+    if (lista.length > ITENS_POR_PAGINA_PANORAMA) {
+      const totalPags = Math.ceil(lista.length / ITENS_POR_PAGINA_PANORAMA);
+      for (let p = 0; p < totalPags; p++) {
+        const slice = lista.slice(p * ITENS_POR_PAGINA_PANORAMA, (p + 1) * ITENS_POR_PAGINA_PANORAMA);
+        novasSlides.push({
+          id: novasSlides.length,
+          tipo: 'geral',
+          titulo: `1. Panorama (${p + 1}/${totalPags})`,
+          subtitulo: `${lista.length} equipamentos no pátio · Pág ${p + 1} de ${totalPags}`,
+          itens: slice
+        });
+      }
+    } else {
+      novasSlides.push({
+        id: 0,
+        tipo: 'geral',
+        titulo: '1. Panorama Geral',
+        subtitulo: `${lista.length} equipamentos no pátio`,
+        itens: lista
+      });
+    }
 
     // 1 máquina por tela de detalhe com visualização a fundo:
     // Tela 2: Máquina 1 (ex: PIPA)
@@ -3578,6 +3783,7 @@ const App = {
       if (slide.tipo === 'geral') {
         tvPaneTable.style.display = 'block';
         tvPaneDetalhes.style.display = 'none';
+        this.renderizarTvPanoramaConteudo(slide.itens || this._equipamentos);
       } else {
         tvPaneTable.style.display = 'none';
         tvPaneDetalhes.style.display = 'block';
