@@ -1,6 +1,28 @@
 version: '3.8'
 
 services:
+  reverse-proxy:
+    image: caddy:2-alpine
+    container_name: jbcunha-proxy
+    restart: unless-stopped
+    depends_on:
+      - gestao-patio
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "5"
+    networks:
+      - jbcunha-net
+
   glpi-db:
     image: mariadb:10.11
     container_name: jbcunha-glpi-db
@@ -37,7 +59,6 @@ services:
       glpi-db:
         condition: service_healthy
     ports:
-      - "80:3000"
       - "3000:3000"
     environment:
       - NODE_ENV=production
@@ -67,6 +88,10 @@ services:
 
 volumes:
   glpi-db-data:
+    driver: local
+  caddy-data:
+    driver: local
+  caddy-config:
     driver: local
 
 networks:
