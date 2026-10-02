@@ -422,10 +422,23 @@ html, body {
 }
 
 .progress-mini-bar {
-  flex: 1; max-width: 85px; height: 5px;
-  background: var(--s3); border-radius: 99px; overflow: hidden;
+  width: 52px;
+  min-width: 44px;
+  max-width: 85px;
+  height: 6px;
+  flex-shrink: 0;
+  background: var(--s3);
+  border-radius: 99px;
+  overflow: hidden;
+  display: inline-block;
+  vertical-align: middle;
 }
-.progress-mini-fill { height: 100%; border-radius: 99px; background: var(--acc); }
+.progress-mini-fill {
+  height: 100%;
+  border-radius: 99px;
+  background: var(--acc);
+  transition: width 0.35s ease;
+}
 
 /* ─── WORKSPACE DO EQUIPAMENTO (HERO & SERVIÇOS) ─────────── */
 .eq-hero {
@@ -1906,15 +1919,7 @@ function renderPatioList() {
     const isEntregue = eq.estado === 'entregue';
     const prio = eq.prioridade || 'Normal';
     const prioClass = isEntregue ? 'pill-normal' : (prio === 'Urgente' ? 'pill-urgente' : prio === 'Alta' ? 'pill-alta' : 'pill-normal');
-    const srvCount = (eq.servicos || []).length;
-    let atvTotal = 0, atvDone = 0;
-    (eq.servicos || []).forEach(s => {
-      (s.atividades || []).forEach(a => {
-        atvTotal++;
-        if (a.estado === 'concluida') atvDone++;
-      });
-    });
-    const pct = isEntregue ? 100 : (atvTotal > 0 ? Math.round((atvDone / atvTotal) * 100) : (eq.estado === 'pronto' ? 100 : 0));
+    const pct = calcularProgressoEquipamento(eq);
 
     const isPronto = eq.estado === 'pronto';
     const statusVeiculoPill = isEntregue
@@ -1945,10 +1950,10 @@ function renderPatioList() {
             <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0">${mIcon('tech', 12)} ${esc(eq.responsavel_tecnico || 'Sem técnico')}</span>
           </div>
           <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
-            <div class="progress-mini-bar">
-              <div class="progress-mini-fill" style="width:${pct}%;background:${isEntregue ? 'var(--t3)' : (isPronto || pct === 100 ? 'var(--green)' : 'var(--acc)')}"></div>
+            <div class="progress-mini-bar" style="width:52px;min-width:44px;height:6px;flex-shrink:0;background:var(--s3);border-radius:99px;overflow:hidden">
+              <div class="progress-mini-fill" style="width:${pct}%;height:100%;border-radius:99px;background:${isEntregue ? 'var(--t3)' : (isPronto || pct === 100 ? 'var(--green)' : 'var(--acc)')};transition:width 0.3s ease"></div>
             </div>
-            <span style="font-weight:700;color:var(--t1)">${pct}%</span>
+            <span style="font-weight:700;color:var(--t1);min-width:32px;text-align:right">${pct}%</span>
           </div>
         </div>
       </div>`;
@@ -1993,10 +1998,10 @@ function renderEquipamentoWorkspace(eq) {
   (eq.servicos || []).forEach(s => {
     (s.atividades || []).forEach(a => {
       totalAtvs++;
-      if (a.estado === 'concluida') doneAtvs++;
+      if (a.estado === 'concluida' || a.concluida) doneAtvs++;
     });
   });
-  const pct = totalAtvs > 0 ? Math.round((doneAtvs / totalAtvs) * 100) : (eq.estado === 'pronto' ? 100 : 0);
+  const pct = calcularProgressoEquipamento(eq);
 
   // Status Operacional do Veículo / Máquina no Todo
   const isPronto = eq.estado === 'pronto';
@@ -2060,15 +2065,15 @@ function renderEquipamentoWorkspace(eq) {
     </div>
 
     <!-- Barra de Progresso Total -->
-    <div style="margin-top:12px">
-      <div style="display:flex;justify-content:space-between;font-size:0.75rem;margin-bottom:4px">
-        <span style="color:var(--t2)">Progresso Operacional</span>
+    <div style="margin-top:12px;background:var(--s2);padding:10px 12px;border-radius:10px;border:1px solid var(--line)">
+      <div style="display:flex;justify-content:space-between;align-items:center;font-size:0.75rem;margin-bottom:6px">
+        <span style="color:var(--t2);font-weight:600">Progresso Operacional</span>
         <span style="font-weight:700;color:${pct === 100 ? 'var(--green)' : 'var(--t1)'}">
-          ${doneAtvs}/${totalAtvs} atividades concluídas (${pct}%)
+          ${totalAtvs > 0 ? `${doneAtvs}/${totalAtvs} atividades concluídas (${pct}%)` : `${pct}% concluído`}
         </span>
       </div>
-      <div class="progress-mini-bar" style="max-width:100%;height:6px">
-        <div class="progress-mini-fill" style="width:${pct}%;background:${isPronto || pct === 100 ? 'var(--green)' : 'var(--acc)'}"></div>
+      <div class="progress-mini-bar" style="width:100%;max-width:100%;height:8px;display:block;background:var(--s3);border-radius:99px;overflow:hidden">
+        <div class="progress-mini-fill" style="width:${pct}%;height:100%;background:${isPronto || pct === 100 ? 'var(--green)' : 'var(--acc)'};transition:width 0.35s ease"></div>
       </div>
     </div>`;
 
@@ -2326,6 +2331,21 @@ function openEditMachineModal() {
     </div>
 
     <div class="form-field">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+        <label style="margin:0">Progresso Operacional Estimado:</label>
+        <span id="mch-prog-val" style="font-weight:700;color:var(--acc);font-size:0.92rem">${calcularProgressoEquipamento(eq)}%</span>
+      </div>
+      <input type="range" class="form-range" id="mch-prog" min="0" max="100" step="5" value="${calcularProgressoEquipamento(eq)}" oninput="document.getElementById('mch-prog-val').textContent = this.value + '%'" style="width:100%;accent-color:var(--acc);cursor:pointer;height:24px">
+      <div style="display:flex;justify-content:space-between;font-size:0.68rem;color:var(--t3);margin-top:2px">
+        <span>0% Entrada</span>
+        <span>25% Diagnóstico</span>
+        <span>50% Execução</span>
+        <span>75% Montagem</span>
+        <span>100% Pronto</span>
+      </div>
+    </div>
+
+    <div class="form-field">
       <label>Previsão de Entrega</label>
       <input type="text" class="form-input-clean" id="mch-prev" value="${esc(eq.previsao_entrega || '')}" placeholder="Ex: AAAA-MM-DD ou DD/MM/AAAA">
     </div>
@@ -2356,6 +2376,8 @@ async function salvarEdicaoMachineModal() {
   const rc      = (document.getElementById('mch-rc')?.value || '').trim();
   const prev    = (document.getElementById('mch-prev')?.value || '').trim();
   const queixa  = (document.getElementById('mch-queixa')?.value || '').trim();
+  const progInp = document.getElementById('mch-prog');
+  const progVal = progInp ? parseInt(progInp.value, 10) : null;
 
   if (!tag || !empresa) {
     toast('Preencha TAG e Empresa', 'err');
@@ -2373,28 +2395,36 @@ async function salvarEdicaoMachineModal() {
   APP.equipamento.responsavel_cliente = rc;
   APP.equipamento.previsao_entrega = prev;
   APP.equipamento.queixa_inicial = queixa;
+  if (progVal !== null && !isNaN(progVal)) {
+    APP.equipamento.progresso = progVal;
+  }
 
   renderEquipamentoWorkspace(APP.equipamento);
   closeSheet();
   showLoading(true);
 
   try {
+    const payloadEnvio = {
+      tag,
+      empresa,
+      equipamento: modelo,
+      num_os: os,
+      prioridade: prio,
+      responsavel_tecnico: tech,
+      localizacao: loc,
+      responsavel_cliente: rc,
+      previsao_entrega: prev,
+      queixa_inicial: queixa,
+      usuario: APP.meuNome
+    };
+    if (progVal !== null && !isNaN(progVal)) {
+      payloadEnvio.progresso = progVal;
+    }
+
     const r = await fetch(`${API}/atendimentos/${APP.equipamento.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        tag,
-        empresa,
-        equipamento: modelo,
-        num_os: os,
-        prioridade: prio,
-        responsavel_tecnico: tech,
-        localizacao: loc,
-        responsavel_cliente: rc,
-        previsao_entrega: prev,
-        queixa_inicial: queixa,
-        usuario: APP.meuNome
-      })
+      body: JSON.stringify(payloadEnvio)
     });
     const j = await r.json();
     if (j.success) {
@@ -3091,6 +3121,65 @@ function formatHora(iso) {
     const d = new Date(iso);
     return d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
   } catch (_) { return ''; }
+}
+
+function calcularProgressoEquipamento(eq) {
+  if (!eq) return 0;
+  if (eq.estado === 'entregue' || eq.estado === 'pronto') return 100;
+
+  // 1. Se tem atividades em qualquer serviço, calcula pela proporção de atividades concluídas
+  let atvTotal = 0, atvDone = 0;
+  const srvs = eq.servicos || [];
+  srvs.forEach(s => {
+    (s.atividades || []).forEach(a => {
+      atvTotal++;
+      if (a.estado === 'concluida' || a.concluida) atvDone++;
+    });
+  });
+  if (atvTotal > 0) {
+    return Math.round((atvDone / atvTotal) * 100);
+  }
+
+  // 2. Se tem serviços (sem atividades filhas detalhadas), calcula pelo avanço dos serviços
+  if (srvs.length > 0) {
+    let somaProgSrv = 0;
+    srvs.forEach(s => {
+      if (['concluida', 'concluido'].includes(s.estado)) somaProgSrv += 100;
+      else if (['em_execucao', 'em_reparo', 'em_montagem', 'em_desmontagem', 'em_fabricacao', 'em_soldagem'].includes(s.estado)) somaProgSrv += 50;
+      else if (s.estado === 'em_teste') somaProgSrv += 85;
+      else if (['em_diagnostico', 'em_inspecao'].includes(s.estado)) somaProgSrv += 20;
+      else if ((s.estado || '').startsWith('aguardando')) somaProgSrv += 25;
+      else somaProgSrv += 0;
+    });
+    return Math.round(somaProgSrv / srvs.length);
+  }
+
+  // 3. Se o backend ou usuário definiu progresso manual maior que zero, respeita
+  if (typeof eq.progresso === 'number' && eq.progresso > 0) {
+    return Math.min(100, Math.max(0, Math.round(eq.progresso)));
+  }
+
+  // 4. Baseado no estágio geral do fluxo do veículo
+  const ESTADO_PROG = {
+    recebido: 0,
+    em_inspecao: 15,
+    em_diagnostico: 20,
+    aguardando_aprovacao: 25,
+    aguardando_peca: 30,
+    aguardando_material: 30,
+    aguardando_cliente: 25,
+    aguardando_execucao: 35,
+    em_desmontagem: 45,
+    em_execucao: 55,
+    em_reparo: 60,
+    em_fabricacao: 65,
+    em_soldagem: 65,
+    em_montagem: 75,
+    em_teste: 85,
+    pronto: 100,
+    entregue: 100
+  };
+  return ESTADO_PROG[eq.estado] || 0;
 }
 
 // Rótulo EXCLUSIVO para status do veículo / máquina no todo

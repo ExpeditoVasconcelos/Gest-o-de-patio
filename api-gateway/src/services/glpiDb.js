@@ -111,13 +111,46 @@ class GlpiDatabase {
           kmVal = parts[1] || '';
         }
 
+        let respCli = t.resp_cliente || '';
+        let respTec = '';
+        if (respCli.includes(';;;')) {
+          const parts = respCli.split(';;;');
+          respCli = parts[0] || '';
+          respTec = parts[1] || '';
+        }
+
+        const servicosCarregados = tasks.map(tk => {
+          let atvs = [];
+          let srvDesc = tk.content || '';
+          let srvResp = '';
+          let srvMotivo = '';
+          if (tk.content && typeof tk.content === 'string' && tk.content.startsWith('{')) {
+            try {
+              const p = JSON.parse(tk.content);
+              if (Array.isArray(p.atividades)) atvs = p.atividades;
+              if (p.desc !== undefined) srvDesc = p.desc;
+              if (p.responsavel) srvResp = p.responsavel;
+              if (p.estado_motivo) srvMotivo = p.estado_motivo;
+            } catch (_) {}
+          }
+          return {
+            id: tk.id,
+            titulo: tk.titulo_servico || srvDesc || 'Serviço',
+            descricao: srvDesc,
+            responsavel: srvResp,
+            estado: tk.estado_interno || (tk.state === 2 ? 'concluido' : tk.state === 1 ? 'em_execucao' : 'pendente'),
+            estado_motivo: srvMotivo,
+            atividades: atvs
+          };
+        });
+
         lista.push({
           id: t.id,
           numero: `ATD-${String(t.id).padStart(3, '0')}`,
           tag: t.tag || t.name,
           empresa: t.entities_id ? `Cliente ${t.entities_id}` : '',
-          responsavel_cliente: t.resp_cliente || '',
-          responsavel_tecnico: '',
+          responsavel_cliente: respCli,
+          responsavel_tecnico: respTec,
           equipamento: t.name,
           placa: t.placa_db || t.tag || '',
           horimetro: horVal,
@@ -142,15 +175,7 @@ class GlpiDatabase {
             tipo_evidencia: d.tag || 'vistoria',
             data_upload: new Date(d.date_creation).toISOString()
           })),
-          servicos: tasks.map(tk => ({
-            id: tk.id,
-            titulo: tk.titulo_servico || tk.content || 'Serviço',
-            descricao: tk.content || '',
-            responsavel: '',
-            estado: tk.estado_interno || (tk.state === 2 ? 'concluido' : tk.state === 1 ? 'em_execucao' : 'pendente'),
-            estado_motivo: '',
-            atividades: []
-          })),
+          servicos: servicosCarregados,
           historico_movimentacoes: followups.map(f => ({
             data: new Date(f.date).toISOString(),
             usuario: 'Operação',
@@ -265,6 +290,27 @@ class GlpiDatabase {
       );
 
       const horimetroKmJoined = [eq.horimetro || '', eq.km || ''].filter(Boolean).join(' | ');
+      const contactCombined = [eq.responsavel_cliente || '', eq.responsavel_tecnico || ''].join(';;;');
+
+      const MAP_LOCATIONS = {
+        'Entrada / Recepção': 1,
+        'Baia 01 (Mecânica Pesada)': 2,
+        'Baia 01': 2,
+        'Baia 02 (Hidráulica)': 3,
+        'Baia 02': 3,
+        'Baia 03 (Escavadeiras)': 4,
+        'Baia 03': 4,
+        'Baia 04 (Motores / Transmissão)': 5,
+        'Baia 04': 5,
+        'Setor Usinagem': 6,
+        'Setor Tornearia': 7,
+        'Soldagem & Caldeiraria': 8,
+        'Área de Testes Hidráulicos': 9,
+        'Área de Lavagem & Descontaminação': 10,
+        'Área de Espera de Peças': 11,
+        'Expedição / Pronto para Entrega': 12
+      };
+      const locId = MAP_LOCATIONS[eq.localizacao] || 1;
 
       if (compRows.length > 0) {
         computerId = compRows[0].id;
@@ -272,12 +318,12 @@ class GlpiDatabase {
           UPDATE glpi_computers 
           SET serial = ?, otherserial = ?, contact = ?, comment = ?
           WHERE id = ?
-        `, [eq.placa || '', horimetroKmJoined, eq.responsavel_cliente || '', eq.queixa_inicial || '', computerId]);
+        `, [eq.placa || '', horimetroKmJoined, contactCombined, eq.queixa_inicial || '', computerId]);
       } else {
         const [insComp] = await this.pool.query(`
           INSERT INTO glpi_computers (name, serial, otherserial, contact, comment)
           VALUES (?, ?, ?, ?, ?)
-        `, [eq.tag || eq.equipamento, eq.placa || '', horimetroKmJoined, eq.responsavel_cliente || '', eq.queixa_inicial || '']);
+        `, [eq.tag || eq.equipamento, eq.placa || '', horimetroKmJoined, contactCombined, eq.queixa_inicial || '']);
         computerId = insComp.insertId;
       }
 
@@ -288,7 +334,7 @@ class GlpiDatabase {
           UPDATE glpi_tickets
           SET name = ?, status = ?, priority = ?, content = ?,
               num_orcamento = ?, num_os = ?, num_nf = ?, custo_direto = ?,
-              time_to_resolve = ?, solvedate = ?, closedate = ?
+              time_to_resolve = ?, solvedate = ?, closedate = ?, locations_id = ?
           WHERE id = ?
         `, [
           eq.equipamento,
@@ -302,13 +348,14 @@ class GlpiDatabase {
           eq.previsao_entrega ? new Date(eq.previsao_entrega) : null,
           eq.data_conclusao ? new Date(eq.data_conclusao) : null,
           eq.data_entrega ? new Date(eq.data_entrega) : null,
+          locId,
           eq.id
         ]);
       } else {
         await this.pool.query(`
           INSERT INTO glpi_tickets
-          (id, name, date, status, priority, content, num_orcamento, num_os, num_nf, custo_direto, time_to_resolve)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          (id, name, date, status, priority, content, num_orcamento, num_os, num_nf, custo_direto, time_to_resolve, locations_id)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `, [
           eq.id,
           eq.equipamento,
@@ -320,7 +367,8 @@ class GlpiDatabase {
           eq.num_os || '',
           eq.num_nf || '',
           Number(eq.custo_direto) || 0,
-          eq.previsao_entrega ? new Date(eq.previsao_entrega) : null
+          eq.previsao_entrega ? new Date(eq.previsao_entrega) : null,
+          locId
         ]);
 
         // Vínculo Computer -> Ticket
@@ -335,7 +383,14 @@ class GlpiDatabase {
       // 3. Atualizar tarefas/serviços
       if (Array.isArray(eq.servicos)) {
         for (const s of eq.servicos) {
-          const stateGlpi = s.estado === 'concluido' ? 2 : s.estado === 'em_execucao' ? 1 : 0;
+          const stateGlpi = (s.estado === 'concluido' || s.estado === 'concluida') ? 2 : s.estado === 'em_execucao' ? 1 : 0;
+          const taskContent = JSON.stringify({
+            desc: s.descricao || '',
+            responsavel: s.responsavel || '',
+            estado_motivo: s.estado_motivo || '',
+            atividades: Array.isArray(s.atividades) ? s.atividades : []
+          });
+
           if (s.id) {
             const [tRows] = await this.pool.query('SELECT id FROM glpi_tickettasks WHERE id = ?', [s.id]);
             if (tRows.length > 0) {
@@ -343,7 +398,7 @@ class GlpiDatabase {
                 UPDATE glpi_tickettasks
                 SET titulo_servico = ?, content = ?, state = ?, estado_interno = ?
                 WHERE id = ?
-              `, [s.titulo, s.descricao || '', stateGlpi, s.estado, s.id]);
+              `, [s.titulo, taskContent, stateGlpi, s.estado, s.id]);
               continue;
             }
           }
@@ -351,7 +406,7 @@ class GlpiDatabase {
             INSERT INTO glpi_tickettasks
             (id, tickets_id, date, titulo_servico, content, state, estado_interno)
             VALUES (?, ?, NOW(), ?, ?, ?, ?)
-          `, [s.id || null, eq.id, s.titulo, s.descricao || '', stateGlpi, s.estado]);
+          `, [s.id || null, eq.id, s.titulo, taskContent, stateGlpi, s.estado]);
         }
       }
     } catch (err) {

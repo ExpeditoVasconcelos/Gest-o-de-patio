@@ -121,6 +121,9 @@ router.patch('/atividade/:eqId/:srvId/:atvId', (req, res) => {
   const atv = storage.updateAtividade(eqId, srvId, atvId, { estado, nota, usuario, descricao, responsavel });
   if (!atv) return res.status(404).json({ success: false, message: 'Atividade não encontrada' });
 
+  const dados = storage.getDashboardData();
+  pushUpdate('painel_atualizado', dados);
+
   res.json({ success: true, data: atv, message: 'Atividade atualizada' });
 });
 

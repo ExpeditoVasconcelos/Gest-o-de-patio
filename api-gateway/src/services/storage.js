@@ -92,12 +92,12 @@ class Storage extends EventEmitter {
         if (ok) {
           const tickets = await glpiDb.carregarAtendimentos();
           if (tickets && tickets.length > 0) {
-            this.data.equipamentos = tickets;
+            this.sincronizarComGlpi(tickets);
             this.save();
           }
           const compras = await glpiDb.carregarCompras();
           if (compras && compras.length > 0) {
-            this.data.compras_diretas = compras;
+            this.sincronizarComprasGlpi(compras);
             this.save();
           }
         }
@@ -110,11 +110,13 @@ class Storage extends EventEmitter {
       try {
         const raw = fs.readFileSync(this.dataFilePath, 'utf8');
         this.data = JSON.parse(raw);
-        if (this.data.versao !== '3.0' || !this.data.equipamentos) {
-          console.log('[Storage] Banco em formato antigo. Gerando seed v3.0...');
+        if (!this.data || !Array.isArray(this.data.equipamentos)) {
+          console.log('[Storage] Banco em formato inválido ou vazio. Inicializando com segurança...');
           this.data = gerarSeedData();
           this.save();
         } else {
+          // Atualiza versão sem nunca apagar dados de produção
+          this.data.versao = '3.1';
           this.cleanChatLogs();
         }
       } catch (err) {
@@ -126,6 +128,83 @@ class Storage extends EventEmitter {
       this.data = gerarSeedData();
       this.save();
     }
+  }
+
+  sincronizarComGlpi(tickets) {
+    if (!Array.isArray(tickets) || tickets.length === 0) return;
+    if (!this.data) this.data = gerarSeedData();
+    if (!Array.isArray(this.data.equipamentos)) this.data.equipamentos = [];
+
+    tickets.forEach(ticket => {
+      const idx = this.data.equipamentos.findIndex(e => e.id === ticket.id);
+      if (idx !== -1) {
+        const eq = this.data.equipamentos[idx];
+        // Preserva atributos ricos locais que o GLPI padrão não contempla
+        const responsavelTecnico = eq.responsavel_tecnico || ticket.responsavel_tecnico || '';
+        const localizacao = (eq.localizacao && eq.localizacao !== 'Entrada / Recepção') ? eq.localizacao : (ticket.localizacao || eq.localizacao || 'Entrada / Recepção');
+        const estado = (eq.estado && eq.estado !== 'recebido') ? eq.estado : (ticket.estado || eq.estado || 'recebido');
+        const estadoMotivo = eq.estado_motivo || ticket.estado_motivo || '';
+        const chat = (Array.isArray(eq.chat) && eq.chat.length > 0) ? eq.chat : (ticket.chat || []);
+        const fotos = (Array.isArray(eq.fotos) && eq.fotos.length > 0) ? eq.fotos : (ticket.fotos || []);
+        const progressoManual = (typeof eq.progresso === 'number' && eq.progresso > 0) ? eq.progresso : null;
+
+        // Mesclar serviços preservando atividades filhas detalhadas
+        const servicosMesclados = Array.isArray(eq.servicos) && eq.servicos.length > 0 ? [...eq.servicos] : [];
+        if (Array.isArray(ticket.servicos)) {
+          ticket.servicos.forEach(sGlpi => {
+            const sIdx = servicosMesclados.findIndex(s => s.id === sGlpi.id || (s.titulo && s.titulo.toLowerCase() === (sGlpi.titulo || '').toLowerCase()));
+            if (sIdx !== -1) {
+              const sExist = servicosMesclados[sIdx];
+              servicosMesclados[sIdx] = {
+                ...sGlpi,
+                ...sExist,
+                estado: sExist.estado || sGlpi.estado,
+                responsavel: sExist.responsavel || sGlpi.responsavel || '',
+                atividades: (Array.isArray(sExist.atividades) && sExist.atividades.length > 0) ? sExist.atividades : (sGlpi.atividades || [])
+              };
+            } else {
+              servicosMesclados.push(sGlpi);
+            }
+          });
+        }
+
+        this.data.equipamentos[idx] = {
+          ...ticket,
+          ...eq,
+          responsavel_tecnico: responsavelTecnico,
+          localizacao: localizacao,
+          estado: estado,
+          estado_motivo: estadoMotivo,
+          chat: chat,
+          dossie: chat,
+          fotos: fotos,
+          servicos: servicosMesclados
+        };
+
+        if (progressoManual !== null) {
+          this.data.equipamentos[idx].progresso = progressoManual;
+        }
+        this._calcularTempos(this.data.equipamentos[idx]);
+      } else {
+        this._calcularTempos(ticket);
+        this.data.equipamentos.push(ticket);
+      }
+    });
+  }
+
+  sincronizarComprasGlpi(compras) {
+    if (!Array.isArray(compras) || compras.length === 0) return;
+    if (!this.data) this.data = gerarSeedData();
+    if (!Array.isArray(this.data.compras_diretas)) this.data.compras_diretas = [];
+
+    compras.forEach(c => {
+      const idx = this.data.compras_diretas.findIndex(x => x.id === c.id);
+      if (idx !== -1) {
+        this.data.compras_diretas[idx] = { ...this.data.compras_diretas[idx], ...c };
+      } else {
+        this.data.compras_diretas.push(c);
+      }
+    });
   }
 
   cleanChatLogs() {
@@ -224,14 +303,46 @@ class Storage extends EventEmitter {
       ? agora > new Date(eq.previsao_entrega)
       : false;
 
-    // Progresso geral baseado em atividades
+    // Progresso geral baseado em atividades, serviços ou estado operacional
     let totalAtiv = 0, concluidasAtiv = 0;
-    (eq.servicos || []).forEach(s => {
+    const srvs = eq.servicos || [];
+    srvs.forEach(s => {
       const atvs = s.atividades || [];
       totalAtiv += atvs.length;
-      concluidasAtiv += atvs.filter(a => a.estado === 'concluida').length;
+      concluidasAtiv += atvs.filter(a => a.estado === 'concluida' || a.concluida).length;
     });
-    eq.progresso = totalAtiv > 0 ? Math.round((concluidasAtiv / totalAtiv) * 100) : (eq.estado === 'pronto' || eq.estado === 'entregue' ? 100 : 0);
+
+    if (eq.estado === 'pronto' || eq.estado === 'entregue') {
+      eq.progresso = 100;
+    } else if (totalAtiv > 0) {
+      eq.progresso = Math.round((concluidasAtiv / totalAtiv) * 100);
+    } else if (srvs.length > 0) {
+      // Quando há serviços sem atividades detalhadas cadastradas
+      let somaProgSrv = 0;
+      srvs.forEach(s => {
+        if (['concluida', 'concluido'].includes(s.estado)) somaProgSrv += 100;
+        else if (['em_execucao', 'em_reparo', 'em_montagem', 'em_desmontagem', 'em_fabricacao', 'em_soldagem'].includes(s.estado)) somaProgSrv += 50;
+        else if (s.estado === 'em_teste') somaProgSrv += 85;
+        else if (['em_diagnostico', 'em_inspecao'].includes(s.estado)) somaProgSrv += 20;
+        else if ((s.estado || '').startsWith('aguardando')) somaProgSrv += 25;
+        else somaProgSrv += 0;
+      });
+      eq.progresso = Math.round(somaProgSrv / srvs.length);
+    } else if (typeof eq.progresso === 'number' && eq.progresso > 0) {
+      // Preserva progresso manual se definido
+      eq.progresso = Math.min(100, Math.max(0, Math.round(eq.progresso)));
+    } else {
+      // Estágio geral de fluxo do equipamento
+      const ESTADO_PROG = {
+        recebido: 0, em_inspecao: 15, em_diagnostico: 20,
+        aguardando_aprovacao: 25, aguardando_peca: 30, aguardando_material: 30,
+        aguardando_cliente: 25, aguardando_execucao: 35,
+        em_desmontagem: 45, em_execucao: 55, em_reparo: 60,
+        em_fabricacao: 65, em_soldagem: 65, em_montagem: 75,
+        em_teste: 85, pronto: 100, entregue: 100
+      };
+      eq.progresso = ESTADO_PROG[eq.estado] || 0;
+    }
     eq.total_atividades = totalAtiv;
     eq.atividades_concluidas = concluidasAtiv;
 
@@ -239,8 +350,11 @@ class Storage extends EventEmitter {
     const servicosLista = (eq.servicos || []).map(s => {
       const atvs = s.atividades || [];
       const tAtv = atvs.length;
-      const cAtv = atvs.filter(a => a.estado === 'concluida').length;
+      const cAtv = atvs.filter(a => a.estado === 'concluida' || a.concluida).length;
       const atvAtiva = atvs.find(a => a.estado === 'em_andamento');
+      const progSrv = tAtv > 0
+        ? Math.round((cAtv / tAtv) * 100)
+        : (['concluida','concluido'].includes(s.estado) ? 100 : ['em_execucao','em_reparo','em_montagem','em_desmontagem','em_fabricacao','em_soldagem'].includes(s.estado) ? 50 : s.estado === 'em_teste' ? 85 : ['em_diagnostico','em_inspecao'].includes(s.estado) ? 20 : (s.estado || '').startsWith('aguardando') ? 25 : 0);
       return {
         id: s.id,
         titulo: s.titulo,
@@ -252,7 +366,7 @@ class Storage extends EventEmitter {
         total_atividades: tAtv,
         atividades_concluidas: cAtv,
         atividade_ativa: atvAtiva ? atvAtiva.descricao : null,
-        progresso: tAtv > 0 ? Math.round((cAtv / tAtv) * 100) : (['concluida','concluido'].includes(s.estado) ? 100 : 0)
+        progresso: progSrv
       };
     });
 
@@ -354,6 +468,11 @@ class Storage extends EventEmitter {
       fotos: []
     };
 
+    if (payload.progresso !== undefined && payload.progresso !== null) {
+      novo.progresso = Math.min(100, Math.max(0, parseInt(payload.progresso, 10) || 0));
+    }
+
+    this._calcularTempos(novo);
     this.data.equipamentos.unshift(novo);
     this.save();
     return novo;
@@ -366,7 +485,8 @@ class Storage extends EventEmitter {
       'tag', 'empresa', 'responsavel_cliente', 'responsavel_tecnico',
       'equipamento', 'placa', 'horimetro', 'km', 'localizacao',
       'prioridade', 'previsao_entrega', 'num_orcamento', 'num_os', 'num_nf',
-      'queixa_inicial', 'estado', 'estado_motivo', 'obs_orcamento', 'condicoes_comerciais'
+      'queixa_inicial', 'estado', 'estado_motivo', 'obs_orcamento', 'condicoes_comerciais',
+      'progresso'
     ];
     campos.forEach(c => {
       if (payload[c] !== undefined && payload[c] !== null) {
@@ -375,6 +495,9 @@ class Storage extends EventEmitter {
     });
     if (payload.placa !== undefined) eq.placa = (payload.placa || '').toUpperCase();
     if (payload.tag !== undefined) eq.tag = (payload.tag || '').trim();
+    if (payload.progresso !== undefined && payload.progresso !== null) {
+      eq.progresso = Math.min(100, Math.max(0, parseInt(payload.progresso, 10) || 0));
+    }
 
     const agora = new Date().toISOString();
     if (eq.estado === 'pronto' && !eq.data_conclusao) eq.data_conclusao = agora;
