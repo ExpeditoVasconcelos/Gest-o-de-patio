@@ -72,7 +72,7 @@ class GlpiDatabase {
     if (!this.conectado) return null;
     try {
       const [tickets] = await this.pool.query(`
-        SELECT t.*, c.name as tag, c.serial, c.otherserial as horimetro, c.contact as resp_cliente,
+        SELECT t.*, c.name as tag, c.serial as placa_db, c.otherserial as horimetro_km_db, c.contact as resp_cliente,
                l.name as localizacao_nome
         FROM glpi_tickets t
         LEFT JOIN glpi_items_tickets it ON (it.tickets_id = t.id AND it.itemtype = 'Computer')
@@ -103,6 +103,14 @@ class GlpiDatabase {
           WHERE di.items_id = ? AND di.itemtype = 'Ticket'
         `, [t.id]);
 
+        let horVal = '';
+        let kmVal = '';
+        if (t.horimetro_km_db) {
+          const parts = String(t.horimetro_km_db).split('|').map(s => s.trim());
+          horVal = parts[0] || '';
+          kmVal = parts[1] || '';
+        }
+
         lista.push({
           id: t.id,
           numero: `ATD-${String(t.id).padStart(3, '0')}`,
@@ -111,9 +119,9 @@ class GlpiDatabase {
           responsavel_cliente: t.resp_cliente || '',
           responsavel_tecnico: '',
           equipamento: t.name,
-          placa: t.tag || '',
-          horimetro: t.horimetro || '',
-          km: '',
+          placa: t.placa_db || t.tag || '',
+          horimetro: horVal,
+          km: kmVal,
           localizacao: t.localizacao_nome || 'Entrada / Recepção',
           estado: this.traduzirStatusGlpiParaEstado(t.status),
           estado_motivo: '',
@@ -256,18 +264,20 @@ class GlpiDatabase {
         [eq.tag || eq.equipamento]
       );
 
+      const horimetroKmJoined = [eq.horimetro || '', eq.km || ''].filter(Boolean).join(' | ');
+
       if (compRows.length > 0) {
         computerId = compRows[0].id;
         await this.pool.query(`
           UPDATE glpi_computers 
-          SET otherserial = ?, contact = ?, comment = ?
+          SET serial = ?, otherserial = ?, contact = ?, comment = ?
           WHERE id = ?
-        `, [eq.horimetro || eq.km || '', eq.responsavel_cliente || '', eq.queixa_inicial || '', computerId]);
+        `, [eq.placa || '', horimetroKmJoined, eq.responsavel_cliente || '', eq.queixa_inicial || '', computerId]);
       } else {
         const [insComp] = await this.pool.query(`
-          INSERT INTO glpi_computers (name, otherserial, contact, comment)
-          VALUES (?, ?, ?, ?)
-        `, [eq.tag || eq.equipamento, eq.horimetro || eq.km || '', eq.responsavel_cliente || '', eq.queixa_inicial || '']);
+          INSERT INTO glpi_computers (name, serial, otherserial, contact, comment)
+          VALUES (?, ?, ?, ?, ?)
+        `, [eq.tag || eq.equipamento, eq.placa || '', horimetroKmJoined, eq.responsavel_cliente || '', eq.queixa_inicial || '']);
         computerId = insComp.insertId;
       }
 

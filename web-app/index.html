@@ -14,7 +14,7 @@
   </script>
   <title>JB Cunha — Central de Operações</title>
   <link rel="manifest" href="/manifest.json">
-  <link rel="stylesheet" href="/css/style.css?v=5.1">
+  <link rel="stylesheet" href="/css/style.css?v=5.2">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 </head>
@@ -123,6 +123,10 @@
         <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
         <span>Compras Diretas</span>
         <span class="ws-tab-badge badge-red" id="ws-badge-compras" style="display:none">0</span>
+      </button>
+      <button class="ws-tab tab-relatorios admin-only usuario-only" id="ws-tab-relatorios" onclick="App.abrirAbaRelatorios()" title="Business Intelligence, Indicadores Gerenciais e Relatório Geral da Oficina">
+        <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+        <span>Relatórios & BI</span>
       </button>
       <button class="ws-tab tab-usuarios admin-only" id="ws-tab-usuarios" onclick="App.abrirAbaUsuarios()" title="Gerenciamento de usuários e permissões (Exclusivo Administradores)">
         <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
@@ -271,23 +275,27 @@
         <form id="form-novo" autocomplete="off" novalidate>
           <!-- Identificação -->
           <fieldset class="form-section">
-            <legend>Equipamento</legend>
+            <legend>Identificação do Veículo / Equipamento</legend>
             <div class="form-grid">
-              <div class="form-group">
-                <label for="f-equipamento">Equipamento <span class="req">*</span></label>
-                <input type="text" id="f-equipamento" name="equipamento" placeholder="Ex: Escavadeira CAT 320D, Cilindro Hidráulico" required>
+              <div class="form-group span-2">
+                <label for="f-equipamento">Equipamento / Modelo <span class="req">*</span></label>
+                <input type="text" id="f-equipamento" name="equipamento" placeholder="Ex: Caminhão Pipa VW 26.280, Escavadeira CAT 320D" required>
               </div>
               <div class="form-group">
-                <label for="f-tag">Tag / Identificação</label>
-                <input type="text" id="f-tag" name="tag" placeholder="Ex: CAT-023, EQ-0042">
+                <label for="f-tag">Tag / Frota</label>
+                <input type="text" id="f-tag" name="tag" placeholder="Ex: CMP 02, CMU 008, EQ-0042">
               </div>
               <div class="form-group">
                 <label for="f-placa">Placa</label>
-                <input type="text" id="f-placa" name="placa" placeholder="Ex: ABC-1234">
+                <input type="text" id="f-placa" name="placa" placeholder="Ex: BRA-2E19 ou ABC-1234">
               </div>
               <div class="form-group">
                 <label for="f-horimetro">Horímetro</label>
                 <input type="text" id="f-horimetro" name="horimetro" placeholder="Ex: 7.890 h">
+              </div>
+              <div class="form-group">
+                <label for="f-km">Quilometragem (KM)</label>
+                <input type="text" id="f-km" name="km" placeholder="Ex: 145.000 km">
               </div>
             </div>
           </fieldset>
@@ -453,6 +461,94 @@
         </div>
         <div id="usuarios-lista-container" style="margin-top:16px">
           <div class="empty-state"><p>Carregando usuários...</p></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══════════════════════════════════════════════
+         VIEW: RELATÓRIOS & BUSINESS INTELLIGENCE (BI)
+         ══════════════════════════════════════════════ -->
+    <section id="view-relatorios" class="view" style="display:none">
+      <div class="compras-wrap">
+        <div class="compras-header">
+          <div class="compras-header-left">
+            <div class="compras-title-row">
+              <svg class="ico-title-lg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+              <h1 class="compras-title">Business Intelligence & Relatórios Gerenciais</h1>
+            </div>
+            <p class="compras-sub">Métricas consolidadas de operação, faturamento previsto, insumos aplicados e exportação para BI</p>
+          </div>
+          <div class="compras-header-right" style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn btn-primary" onclick="App.exportarRelatorioGeralCsv()" id="btn-export-bi-csv" title="Exportar dados consolidados em CSV estruturado para Power BI / Excel">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              <span>Exportar Power BI / Excel</span>
+            </button>
+            <button class="btn btn-ghost" onclick="App.imprimirRelatorioGeral()" title="Imprimir Relatório Executivo">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+              <span>Imprimir / PDF</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Filtros do BI -->
+        <div class="bi-toolbar">
+          <div class="bi-filters-periodo" id="bi-filtros-chips">
+            <button class="chip active" data-periodo="todos" onclick="App.filtrarRelatorioBI('periodo', 'todos')">Todo Histórico</button>
+            <button class="chip" data-periodo="mes" onclick="App.filtrarRelatorioBI('periodo', 'mes')">Mês Atual</button>
+            <button class="chip" data-periodo="30dias" onclick="App.filtrarRelatorioBI('periodo', '30dias')">Últimos 30 Dias</button>
+            <button class="chip" data-periodo="patio" onclick="App.filtrarRelatorioBI('periodo', 'patio')">Apenas no Pátio</button>
+            <button class="chip" data-periodo="entregues" onclick="App.filtrarRelatorioBI('periodo', 'entregues')">Apenas Entregues</button>
+          </div>
+          <div class="bi-filters-selects">
+            <select id="bi-filtro-cliente" class="form-control bi-select" onchange="App.filtrarRelatorioBI('cliente', this.value)">
+              <option value="">Todos os Clientes</option>
+            </select>
+            <input type="text" id="bi-busca-texto" class="form-control bi-input-search" placeholder="Buscar placa, tag, veículo..." oninput="App.filtrarRelatorioBI('busca', this.value)">
+            <button class="btn btn-sm btn-ghost" onclick="App.carregarRelatoriosBI()" title="Atualizar dados">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- KPIs Executivos do BI -->
+        <div class="bi-kpis-container" id="bi-kpis-container">
+          <!-- Injetado por JS -->
+        </div>
+
+        <!-- Gráficos e Distribuição Analítica -->
+        <div class="bi-analytics-row" id="bi-analytics-container">
+          <!-- Injetado por JS -->
+        </div>
+
+        <!-- Tabela Analítica de BI -->
+        <div class="bi-table-wrap">
+          <div class="bi-table-header">
+            <h2 class="bi-table-title">Detalhamento Operacional & Financeiro por Veículo</h2>
+            <span class="bi-table-counter" id="bi-table-counter">—</span>
+          </div>
+          <div style="overflow-x:auto">
+            <table class="bi-table" id="bi-table">
+              <thead>
+                <tr>
+                  <th>O.S. / Tag</th>
+                  <th>Veículo / Equipamento</th>
+                  <th>Placa</th>
+                  <th>Horímetro / KM</th>
+                  <th>Cliente</th>
+                  <th>Entrada</th>
+                  <th>Lead Time</th>
+                  <th>Status</th>
+                  <th style="text-align:right">Custo Peças</th>
+                  <th style="text-align:right">Mão de Obra</th>
+                  <th style="text-align:right">Total Orçado</th>
+                  <th style="text-align:center">Ação</th>
+                </tr>
+              </thead>
+              <tbody id="bi-table-body">
+                <!-- Injetado por JS -->
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </section>
@@ -699,9 +795,40 @@
     </div>
   </div>
 
+  <!-- ═══════════════════════════════════════════════════════════
+       OVERLAY: RELATÓRIO DO VEÍCULO (ORÇAMENTO & PRECIFICAÇÃO NFS-E)
+       ═══════════════════════════════════════════════════════════ -->
+  <div id="overlay-relatorio-veiculo" class="relatorio-overlay" style="display:none">
+    <div class="relatorio-backdrop" onclick="App.fecharRelatorioVeiculo()"></div>
+    <div class="relatorio-modal-container">
+      <div class="relatorio-top-bar no-print">
+        <div class="relatorio-top-title">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+          <span>Dossiê de Orçamento & Precificação para NFS-e</span>
+        </div>
+        <div class="relatorio-actions-group">
+          <button class="btn btn-sm btn-ghost" onclick="App.exportarCsvDossieVeiculo()" title="Exportar dados do orçamento em CSV">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            <span>Exportar CSV</span>
+          </button>
+          <button class="btn btn-sm btn-primary" onclick="App.imprimirDossieVeiculo()" title="Imprimir Orçamento ou Salvar como PDF">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+            <span>Imprimir / Salvar PDF</span>
+          </button>
+          <button class="btn-icon btn-close-relatorio" onclick="App.fecharRelatorioVeiculo()" title="Fechar relatório" aria-label="Fechar">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+      </div>
+      <div class="relatorio-scroll-body" id="relatorio-veiculo-content">
+        <!-- Renderizado dinamicamente por JS -->
+      </div>
+    </div>
+  </div>
+
   <!-- Toast de notificações -->
   <div id="toast-container" class="toast-container" aria-live="polite"></div>
 
-  <script src="/js/app.js?v=5.1"></script>
+  <script src="/js/app.js?v=5.2"></script>
 </body>
 </html>

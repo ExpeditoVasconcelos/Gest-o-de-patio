@@ -366,7 +366,7 @@ class Storage extends EventEmitter {
       'tag', 'empresa', 'responsavel_cliente', 'responsavel_tecnico',
       'equipamento', 'placa', 'horimetro', 'km', 'localizacao',
       'prioridade', 'previsao_entrega', 'num_orcamento', 'num_os', 'num_nf',
-      'queixa_inicial', 'estado', 'estado_motivo'
+      'queixa_inicial', 'estado', 'estado_motivo', 'obs_orcamento', 'condicoes_comerciais'
     ];
     campos.forEach(c => {
       if (payload[c] !== undefined && payload[c] !== null) {
@@ -517,6 +517,8 @@ class Storage extends EventEmitter {
       responsavel: payload.responsavel || '',
       estado: payload.estado || 'em_diagnostico',
       estado_motivo: payload.estado_motivo || '',
+      valor: parseFloat(payload.valor) || 0,
+      horas: parseFloat(payload.horas) || 0,
       criado_em: agora,
       atualizado_em: agora,
       atividades: []
@@ -534,9 +536,11 @@ class Storage extends EventEmitter {
     const srv = this._encontrarServico(eq, servicoId);
     if (!srv) return null;
 
-    ['titulo','descricao','responsavel','estado','estado_motivo'].forEach(c => {
+    ['titulo','descricao','responsavel','estado','estado_motivo','valor','horas'].forEach(c => {
       if (payload[c] !== undefined) srv[c] = payload[c];
     });
+    if (payload.valor !== undefined) srv.valor = parseFloat(payload.valor) || 0;
+    if (payload.horas !== undefined) srv.horas = parseFloat(payload.horas) || 0;
     srv.atualizado_em = new Date().toISOString();
 
     // Sem logs automáticos de sistema no chat/dossiê

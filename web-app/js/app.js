@@ -546,7 +546,7 @@ const App = {
   // ── Navegação ────────────────────────────────────────────────────
   navegar(view, equipId) {
     document.querySelectorAll('.view').forEach(v => { v.style.display = 'none'; v.classList.remove('active'); });
-    const mapa = { painel:'view-painel', novo:'view-novo', detalhe:'view-detalhe', compras:'view-compras', usuarios:'view-usuarios' };
+    const mapa = { painel:'view-painel', novo:'view-novo', detalhe:'view-detalhe', compras:'view-compras', usuarios:'view-usuarios', relatorios:'view-relatorios' };
     const el = $id(mapa[view] || 'view-painel');
     if (el) { el.style.display = 'block'; el.classList.add('active'); }
     this.viewAtual = view;
@@ -560,6 +560,8 @@ const App = {
       this.carregarCompras();
     } else if (view === 'usuarios') {
       this.carregarUsuarios();
+    } else if (view === 'relatorios') {
+      this.carregarRelatoriosBI();
     }
   },
 
@@ -681,6 +683,24 @@ const App = {
     if (slideNav) slideNav.style.display = 'none';
 
     this.carregarUsuarios();
+  },
+
+  // ── Aba: Relatórios & BI Executivo ────────────────────────────────
+  abrirAbaRelatorios() {
+    this.abaPrincipal = 'relatorios';
+    this.navegar('relatorios');
+
+    document.querySelectorAll('.ws-tab').forEach(t => t.classList.remove('active'));
+    const tabR = $id('ws-tab-relatorios');
+    if (tabR) tabR.classList.add('active');
+
+    const statusTxt = $id('txt-status-aba');
+    if (statusTxt) statusTxt.textContent = 'Métricas consolidadas, BI operacional, faturamento e exportações da oficina';
+
+    const slideNav = $id('slides-nav-bar');
+    if (slideNav) slideNav.style.display = 'none';
+
+    this.carregarRelatoriosBI();
   },
 
   async carregarUsuarios() {
@@ -1741,7 +1761,13 @@ const App = {
       </td>
       <td>
         <span class="txt-truncate" title="${escapar(eq.equipamento)}">${escapar(eq.equipamento)}</span>
-        ${eq.placa ? `<span class="txt-sub">${escapar(eq.placa)}</span>` : ''}
+        ${[eq.placa, eq.horimetro, eq.km ? eq.km + ' km' : ''].filter(Boolean).length > 0 ? `
+          <div style="font-size:0.72rem;color:var(--text-muted);margin-top:2px;display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+            ${eq.placa ? `<span style="font-weight:700;color:var(--text-secondary)">🚗 ${escapar(eq.placa)}</span>` : ''}
+            ${eq.horimetro ? `<span>⏱️ ${escapar(eq.horimetro)}</span>` : ''}
+            ${eq.km ? `<span>🛣️ ${escapar(eq.km)} km</span>` : ''}
+          </div>` : ''
+        }
       </td>
       <td>
         ${servicosCellHtml}
@@ -1770,6 +1796,9 @@ const App = {
       </td>
       <td style="text-align:center" onclick="event.stopPropagation()">
         <div style="display:inline-flex;align-items:center;gap:.25rem">
+          <button class="btn-icon btn-edit-hover admin-only usuario-only" style="width:28px;height:28px" onclick="App.abrirRelatorioVeiculo(${eq.id})" title="Gerar Orçamento / Relatório NFS-e" aria-label="Orçamento">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+          </button>
           <button class="btn-icon btn-edit-hover" style="width:28px;height:28px" onclick="App.abrirModalEditarAtendimento(${eq.id})" title="Editar dados cadastrais deste atendimento" aria-label="Editar">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
           </button>
@@ -1832,20 +1861,32 @@ const App = {
         <div style="margin-top:.75rem">
           <div style="display:flex;align-items:center;gap:.6rem;flex-wrap:wrap">
             <span class="detalhe-tag">${escapar(eq.tag)}</span>
-            <button class="btn-icon btn-edit-hover" onclick="App.abrirModalEditarAtendimento(${eq.id})" title="Editar informações cadastrais deste atendimento" style="width:28px;height:28px">
+            ${eq.placa ? `
+              <div class="placa-badge" title="Placa Oficial do Veículo">
+                <div class="placa-badge-topo">BRASIL</div>
+                <div class="placa-badge-num">${escapar(eq.placa)}</div>
+              </div>` : `
+              <button class="telemetria-pill empty" onclick="App.abrirModalEditarAtendimento(${eq.id})" title="Adicionar Placa do Veículo">+ Placa</button>`
+            }
+            ${eq.horimetro ? `
+              <span class="telemetria-pill" title="Horímetro Operacional">${renderIcon('gear')} <strong>${escapar(eq.horimetro)}</strong></span>` : `
+              <button class="telemetria-pill empty" onclick="App.abrirModalEditarAtendimento(${eq.id})" title="Adicionar Horímetro">+ Horímetro</button>`
+            }
+            ${eq.km ? `
+              <span class="telemetria-pill" title="Quilometragem (KM)">${renderIcon('route')} <strong>${escapar(eq.km)}</strong></span>` : `
+              <button class="telemetria-pill empty" onclick="App.abrirModalEditarAtendimento(${eq.id})" title="Adicionar Quilometragem (KM)">+ KM</button>`
+            }
+            <button class="btn-icon btn-edit-hover" onclick="App.abrirModalEditarAtendimento(${eq.id})" title="Editar dados cadastrais e telemetria deste atendimento" style="width:28px;height:28px">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
             </button>
           </div>
           <div class="detalhe-equip">${escapar(eq.equipamento)} ${prio}</div>
           <div class="detalhe-meta">
-            <span>${renderIcon('building')} ${escapar(eq.empresa)}</span>
+            <span>${renderIcon('building')} <strong>${escapar(eq.empresa)}</strong></span>
             ${eq.responsavel_cliente ? `<span>${renderIcon('user')} ${escapar(eq.responsavel_cliente)} (cliente)</span>` : ''}
             ${eq.responsavel_tecnico ? `<span>${renderIcon('wrench')} ${escapar(eq.responsavel_tecnico)} (técnico)</span>` : ''}
             <span>${renderIcon('pin')} ${escapar(eq.localizacao || '—')}</span>
             <span>${renderIcon('clock')} ${eq.tempo_oficina || '—'} na oficina</span>
-            ${eq.placa ? `<span>${renderIcon('truck')} Placa: <strong>${escapar(eq.placa)}</strong></span>` : ''}
-            ${eq.horimetro ? `<span>${renderIcon('gear')} Horímetro: <strong>${escapar(eq.horimetro)}</strong></span>` : ''}
-            ${eq.km ? `<span>${renderIcon('route')} <strong>${escapar(eq.km)}</strong> km</span>` : ''}
             ${eq.previsao_entrega ? `<span>${renderIcon('calendar')} Previsão: <strong>${formatarDataBR(eq.previsao_entrega)}</strong></span>` : ''}
             ${eq.num_os ? `<span>${renderIcon('os')} OS: <strong>${escapar(eq.num_os)}</strong></span>` : ''}
             ${eq.num_orcamento ? `<span>${renderIcon('orc')} Orç: <strong>${escapar(eq.num_orcamento)}</strong></span>` : ''}
@@ -1861,13 +1902,17 @@ const App = {
         </div>
         ${eq.estado_motivo ? `<div class="estado-motivo" style="font-size:.76rem; text-align:right">${escapar(eq.estado_motivo)}</div>` : ''}
         <div style="display:flex;gap:.4rem;flex-wrap:wrap;justify-content:flex-end;margin-top:.4rem">
+          <button class="btn btn-sm btn-primary admin-only usuario-only" onclick="App.abrirRelatorioVeiculo(${eq.id})" title="Gerar Orçamento Técnico, Dossiê de Serviços e Precificação para NFS-e" style="display:inline-flex;align-items:center;gap:5px;font-weight:600">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+            <span>Orçamento / Relatório NFS-e</span>
+          </button>
           <button class="btn btn-sm btn-ghost" onclick="App.abrirModalEditarAtendimento(${eq.id})" title="Editar informações do atendimento (equipamento, cliente, baia, prazos, etc.)">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:13px;height:13px;margin-right:2px"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
             Editar dados
           </button>
           <button class="btn btn-sm btn-ghost" onclick="App.abrirModalEstado(${eq.id})">Alterar estado geral</button>
           <button class="btn btn-sm btn-ghost" onclick="App.abrirModalLocalizacao(${eq.id}, '${escapar(eq.localizacao || '')}')">Mover baia</button>
-          <button class="btn btn-sm btn-primary" onclick="App.abrirModalNovoServico(${eq.id})">+ Serviço</button>
+          <button class="btn btn-sm btn-ghost" onclick="App.abrirModalNovoServico(${eq.id})">+ Serviço</button>
           <button class="btn btn-sm btn-ghost-danger" onclick="App.excluirAtendimento(${eq.id}, '${escapar(eq.tag)}')" title="Excluir este atendimento">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:13px;height:13px"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
             Excluir
@@ -3907,6 +3952,856 @@ const App = {
           </div>
         </div>`;
     }).join('');
+  },
+
+  // ══════════════════════════════════════════════════════════════════
+  // MÓDULO DE BUSINESS INTELLIGENCE (BI) & RELATÓRIOS GERENCIAIS
+  // ══════════════════════════════════════════════════════════════════
+  _biFiltroPeriodo: 'todos',
+  _biFiltroCliente: '',
+  _biBusca: '',
+  _biDadosCache: [],
+
+  async carregarRelatoriosBI() {
+    try {
+      let equipamentos = this._equipamentos;
+      if (!Array.isArray(equipamentos) || equipamentos.length === 0) {
+        const r = await fetch(API);
+        const j = await r.json();
+        if (j.success && Array.isArray(j.data)) {
+          equipamentos = j.data;
+          this._equipamentos = j.data;
+        }
+      }
+      this._biDadosCache = Array.isArray(equipamentos) ? equipamentos : [];
+      this._popularSelectClientesBI();
+      this.renderizarDashboardBI();
+    } catch (err) {
+      console.error('[BI] Erro ao carregar relatórios:', err);
+      this.toast('Erro ao processar dados de Business Intelligence', 'error');
+    }
+  },
+
+  _popularSelectClientesBI() {
+    const sel = $id('bi-filtro-cliente');
+    if (!sel) return;
+    const atual = this._biFiltroCliente || '';
+    const clientes = [...new Set(this._biDadosCache.map(e => (e.empresa || '').trim()).filter(Boolean))].sort();
+    let opts = '<option value="">Todos os Clientes</option>';
+    clientes.forEach(c => {
+      opts += `<option value="${escapar(c)}"${c === atual ? ' selected' : ''}>${escapar(c)}</option>`;
+    });
+    sel.innerHTML = opts;
+  },
+
+  filtrarRelatorioBI(tipo, valor) {
+    if (tipo === 'periodo') {
+      this._biFiltroPeriodo = valor;
+      const chips = document.querySelectorAll('#bi-filtros-chips .chip');
+      chips.forEach(c => {
+        c.classList.toggle('active', c.dataset.periodo === valor);
+      });
+    } else if (tipo === 'cliente') {
+      this._biFiltroCliente = (valor || '').trim();
+    } else if (tipo === 'busca') {
+      this._biBusca = (valor || '').trim().toLowerCase();
+    }
+    this.renderizarDashboardBI();
+  },
+
+  renderizarDashboardBI() {
+    const kpiContainer = $id('bi-kpis-container');
+    const analyticsContainer = $id('bi-analytics-container');
+    const tableBody = $id('bi-table-body');
+    const counter = $id('bi-table-counter');
+
+    const agora = new Date();
+    const lista = this._biDadosCache || [];
+
+    // Aplicar filtros
+    const filtrados = lista.filter(e => {
+      // 1. Filtro Período
+      if (this._biFiltroPeriodo === 'patio' && e.estado === 'entregue') return false;
+      if (this._biFiltroPeriodo === 'entregues' && e.estado !== 'entregue') return false;
+      if (this._biFiltroPeriodo === 'mes') {
+        const d = new Date(e.data_entrada || agora);
+        if (d.getMonth() !== agora.getMonth() || d.getFullYear() !== agora.getFullYear()) return false;
+      }
+      if (this._biFiltroPeriodo === '30dias') {
+        const d = new Date(e.data_entrada || agora);
+        const diffDias = (agora - d) / (1000 * 60 * 60 * 24);
+        if (diffDias > 30) return false;
+      }
+
+      // 2. Filtro Cliente
+      if (this._biFiltroCliente && (e.empresa || '').trim().toLowerCase() !== this._biFiltroCliente.toLowerCase()) {
+        return false;
+      }
+
+      // 3. Filtro Busca Texto
+      if (this._biBusca) {
+        const q = this._biBusca;
+        const texto = [
+          e.tag, e.equipamento, e.placa, e.horimetro, e.km,
+          e.empresa, e.localizacao, e.num_os, e.num_orcamento, e.num_nf
+        ].filter(Boolean).join(' ').toLowerCase();
+        if (!texto.includes(q)) return false;
+      }
+
+      return true;
+    });
+
+    if (counter) counter.textContent = `${filtrados.length} atendimento(s) apurado(s)`;
+
+    // Cálculos de KPIs
+    const totalVeiculos = filtrados.length;
+    const ativosNoPatio = filtrados.filter(e => e.estado !== 'entregue').length;
+    const ocupacaoPct = Math.min(100, Math.round((ativosNoPatio / 12) * 100));
+
+    let somaDias = 0;
+    filtrados.forEach(e => {
+      const ini = new Date(e.data_entrada || agora);
+      const fim = e.data_entrega ? new Date(e.data_entrega) : agora;
+      const d = Math.max(1, Math.round((fim - ini) / (1000 * 60 * 60 * 24)));
+      somaDias += d;
+    });
+    const leadTimeMedio = totalVeiculos > 0 ? (somaDias / totalVeiculos).toFixed(1) : '0';
+
+    let totalCustoPecas = 0;
+    let totalMaoObra = 0;
+
+    filtrados.forEach(e => {
+      const pecas = Array.isArray(e.custos_diretos) ? e.custos_diretos : [];
+      totalCustoPecas += pecas.reduce((acc, c) => acc + (parseFloat(c.valor_atribuido) || 0), 0);
+
+      const servicos = Array.isArray(e.servicos) ? e.servicos : [];
+      totalMaoObra += servicos.reduce((acc, s) => acc + (parseFloat(s.valor) || 0), 0);
+    });
+
+    const faturamentoPrevisto = totalCustoPecas + totalMaoObra;
+
+    const fmtM = v => Number(v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+    // Renderizar KPI Cards
+    if (kpiContainer) {
+      kpiContainer.innerHTML = `
+        <div class="bi-kpi-card destaque">
+          <span class="bi-kpi-label">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+            Total de Veículos
+          </span>
+          <span class="bi-kpi-val">${totalVeiculos}</span>
+          <span class="bi-kpi-sub">${ativosNoPatio} ativos no pátio · ${totalVeiculos - ativosNoPatio} entregues</span>
+        </div>
+
+        <div class="bi-kpi-card">
+          <span class="bi-kpi-label">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 3v18"/><path d="M3 9h18"/></svg>
+            Ocupação do Pátio
+          </span>
+          <span class="bi-kpi-val">${ocupacaoPct}%</span>
+          <span class="bi-kpi-sub">${ativosNoPatio} de 12 baias em operação</span>
+        </div>
+
+        <div class="bi-kpi-card">
+          <span class="bi-kpi-label">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            Tempo Médio (Lead Time)
+          </span>
+          <span class="bi-kpi-val">${leadTimeMedio} <span style="font-size:0.9rem;font-weight:600">dias</span></span>
+          <span class="bi-kpi-sub">Permanência média por ativo</span>
+        </div>
+
+        <div class="bi-kpi-card amber">
+          <span class="bi-kpi-label">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+            Custo Peças / Insumos
+          </span>
+          <span class="bi-kpi-val" style="color:var(--c-amber)">${fmtM(totalCustoPecas)}</span>
+          <span class="bi-kpi-sub">Compras diretas atribuídas</span>
+        </div>
+
+        <div class="bi-kpi-card">
+          <span class="bi-kpi-label">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+            Mão de Obra Orçada
+          </span>
+          <span class="bi-kpi-val">${fmtM(totalMaoObra)}</span>
+          <span class="bi-kpi-sub">Serviços técnicos e mecânicos</span>
+        </div>
+
+        <div class="bi-kpi-card verde">
+          <span class="bi-kpi-label">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            Faturamento Previsto
+          </span>
+          <span class="bi-kpi-val" style="color:var(--c-green)">${fmtM(faturamentoPrevisto)}</span>
+          <span class="bi-kpi-sub">Base consolidada para NFS-e</span>
+        </div>
+      `;
+    }
+
+    // Renderizar Analytics Row (Distribuição por Status e Top Clientes)
+    if (analyticsContainer) {
+      const statusCounts = {};
+      filtrados.forEach(e => {
+        const est = e.estado || 'recebido';
+        statusCounts[est] = (statusCounts[est] || 0) + 1;
+      });
+
+      const clientCounts = {};
+      const clientValues = {};
+      filtrados.forEach(e => {
+        const emp = e.empresa || 'Outros';
+        clientCounts[emp] = (clientCounts[emp] || 0) + 1;
+        const pecas = (e.custos_diretos || []).reduce((a, c) => a + (parseFloat(c.valor_atribuido) || 0), 0);
+        const mo = (e.servicos || []).reduce((a, s) => a + (parseFloat(s.valor) || 0), 0);
+        clientValues[emp] = (clientValues[emp] || 0) + (pecas + mo);
+      });
+
+      const maxStatus = Math.max(1, ...Object.values(statusCounts));
+      const maxClientVal = Math.max(1, ...Object.values(clientValues));
+
+      analyticsContainer.innerHTML = `
+        <div class="bi-analytics-card">
+          <div class="bi-analytics-title">
+            <span>Distribuição por Status Operacional</span>
+            <span style="font-size:0.75rem;font-weight:500;color:var(--text-muted)">${filtrados.length} total</span>
+          </div>
+          <div>
+            ${Object.entries(statusCounts).map(([st, qtd]) => {
+              const pct = Math.round((qtd / (filtrados.length || 1)) * 100);
+              const barPct = Math.round((qtd / maxStatus) * 100);
+              const label = LABEL_ESTADO_FULL[st] || st;
+              return `
+                <div class="bi-bar-item">
+                  <div class="bi-bar-label">
+                    <span>${label}</span>
+                    <span><strong>${qtd}</strong> (${pct}%)</span>
+                  </div>
+                  <div class="bi-bar-track">
+                    <div class="bi-bar-fill" style="width:${barPct}%"></div>
+                  </div>
+                </div>`;
+            }).join('') || '<div class="empty-state" style="padding:10px"><p>Sem dados no período</p></div>'}
+          </div>
+        </div>
+
+        <div class="bi-analytics-card">
+          <div class="bi-analytics-title">
+            <span>Volume & Faturamento por Cliente</span>
+            <span style="font-size:0.75rem;font-weight:500;color:var(--text-muted)">Top Clientes</span>
+          </div>
+          <div>
+            ${Object.entries(clientCounts).map(([emp, qtd]) => {
+              const val = clientValues[emp] || 0;
+              const barPct = Math.round((val / maxClientVal) * 100);
+              return `
+                <div class="bi-bar-item">
+                  <div class="bi-bar-label">
+                    <span><strong>${escapar(emp)}</strong> (${qtd} veículos)</span>
+                    <span style="font-family:var(--font-mono);font-weight:700;color:var(--text-primary)">${fmtM(val)}</span>
+                  </div>
+                  <div class="bi-bar-track">
+                    <div class="bi-bar-fill" style="width:${barPct}%;background:var(--c-green)"></div>
+                  </div>
+                </div>`;
+            }).join('') || '<div class="empty-state" style="padding:10px"><p>Sem dados no período</p></div>'}
+          </div>
+        </div>
+      `;
+    }
+
+    // Renderizar Tabela Analítica
+    if (tableBody) {
+      if (filtrados.length === 0) {
+        tableBody.innerHTML = `<tr><td colspan="12" style="text-align:center;padding:24px;color:var(--text-muted)">Nenhum registro encontrado para os filtros selecionados.</td></tr>`;
+        return;
+      }
+
+      tableBody.innerHTML = filtrados.map(e => {
+        const pecas = (e.custos_diretos || []).reduce((a, c) => a + (parseFloat(c.valor_atribuido) || 0), 0);
+        const mo = (e.servicos || []).reduce((a, s) => a + (parseFloat(s.valor) || 0), 0);
+        const total = pecas + mo;
+
+        const ini = new Date(e.data_entrada || agora);
+        const fim = e.data_entrega ? new Date(e.data_entrega) : agora;
+        const leadDias = Math.max(1, Math.round((fim - ini) / (1000 * 60 * 60 * 24)));
+
+        const estadoClass = classeEstado(e.estado, e.atrasado);
+        const estadoLabel = LABEL_ESTADO_FULL[e.estado] || e.estado;
+
+        const telemetriaParts = [];
+        if (e.horimetro) telemetriaParts.push(`⏱️ ${escapar(e.horimetro)}`);
+        if (e.km) telemetriaParts.push(`🛣️ ${escapar(e.km)} km`);
+        const telemetriaStr = telemetriaParts.length ? telemetriaParts.join(' · ') : '—';
+
+        return `
+          <tr>
+            <td>
+              <strong style="color:var(--text-primary)">${escapar(e.tag || `ATD-${e.id}`)}</strong>
+              ${e.num_os ? `<div style="font-size:0.72rem;color:var(--text-muted)">OS: ${escapar(e.num_os)}</div>` : ''}
+            </td>
+            <td>
+              <div style="font-weight:600;color:var(--text-primary)">${escapar(e.equipamento)}</div>
+              <div style="font-size:0.72rem;color:var(--text-muted)">${escapar(e.localizacao || 'Pátio')}</div>
+            </td>
+            <td>
+              ${e.placa ? `
+                <div class="placa-badge" style="transform:scale(0.85);transform-origin:left center" title="Placa do Veículo">
+                  <div class="placa-badge-topo">BRASIL</div>
+                  <div class="placa-badge-num">${escapar(e.placa)}</div>
+                </div>` : '<span style="color:var(--text-muted);font-size:0.75rem">—</span>'}
+            </td>
+            <td style="font-size:0.75rem;white-space:nowrap">${telemetriaStr}</td>
+            <td>
+              <strong style="color:var(--text-primary)">${escapar(e.empresa)}</strong>
+              ${e.responsavel_cliente ? `<div style="font-size:0.72rem;color:var(--text-muted)">${escapar(e.responsavel_cliente)}</div>` : ''}
+            </td>
+            <td style="font-size:0.75rem;white-space:nowrap">${formatarDataBR(e.data_entrada)}</td>
+            <td style="font-size:0.75rem">${leadDias} dia(s)</td>
+            <td>
+              <div class="estado-badge ${estadoClass}" style="padding:2px 8px;font-size:0.72rem">
+                <div class="estado-dot"></div>
+                <span>${estadoLabel}</span>
+              </div>
+            </td>
+            <td style="text-align:right" class="num-val">${pecas > 0 ? fmtM(pecas) : '—'}</td>
+            <td style="text-align:right" class="num-val">${mo > 0 ? fmtM(mo) : '—'}</td>
+            <td style="text-align:right;color:var(--accent);font-weight:700" class="num-val">${fmtM(total)}</td>
+            <td style="text-align:center">
+              <button class="btn btn-sm btn-primary" onclick="App.abrirRelatorioVeiculo(${e.id})" title="Abrir Dossiê de Orçamento e Precificação para NFS-e" style="padding:3px 8px;font-size:0.72rem;white-space:nowrap">
+                📄 Orçamento / NFS-e
+              </button>
+            </td>
+          </tr>`;
+      }).join('');
+    }
+  },
+
+  exportarRelatorioGeralCsv() {
+    const lista = this._biDadosCache || [];
+    if (!lista.length) {
+      this.toast('Não há dados disponíveis para exportação.', 'warning');
+      return;
+    }
+
+    const agora = new Date();
+    const cabecalho = [
+      'ID',
+      'Numero_Atendimento',
+      'Tag_Frota',
+      'Equipamento',
+      'Placa',
+      'Horimetro',
+      'Quilometragem_KM',
+      'Cliente_Empresa',
+      'Solicitante_Cliente',
+      'Tecnico_Responsavel',
+      'Baia_Localizacao',
+      'Estado_Operacional',
+      'Prioridade',
+      'Data_Entrada',
+      'Data_Previsao',
+      'Data_Conclusao',
+      'Data_Entrega',
+      'Lead_Time_Dias',
+      'Qtd_Servicos',
+      'Custo_Pecas_BRL',
+      'Mao_de_Obra_BRL',
+      'Total_Orcamento_BRL',
+      'Numero_Orcamento',
+      'Numero_OS',
+      'Numero_NFSe'
+    ];
+
+    const linhas = [cabecalho.map(c => `"${c}"`).join(';')];
+
+    lista.forEach(e => {
+      const pecas = (e.custos_diretos || []).reduce((a, c) => a + (parseFloat(c.valor_atribuido) || 0), 0);
+      const mo = (e.servicos || []).reduce((a, s) => a + (parseFloat(s.valor) || 0), 0);
+      const total = pecas + mo;
+
+      const ini = new Date(e.data_entrada || agora);
+      const fim = e.data_entrega ? new Date(e.data_entrega) : agora;
+      const leadDias = Math.max(1, Math.round((fim - ini) / (1000 * 60 * 60 * 24)));
+
+      const colunas = [
+        e.id,
+        e.numero || `ATD-${String(e.id).padStart(3, '0')}`,
+        e.tag || '',
+        e.equipamento || '',
+        e.placa || '',
+        e.horimetro || '',
+        e.km || '',
+        e.empresa || '',
+        e.responsavel_cliente || '',
+        e.responsavel_tecnico || '',
+        e.localizacao || '',
+        LABEL_ESTADO_FULL[e.estado] || e.estado || '',
+        e.prioridade || 'Normal',
+        e.data_entrada || '',
+        e.previsao_entrega || '',
+        e.data_conclusao || '',
+        e.data_entrega || '',
+        leadDias,
+        (e.servicos || []).length,
+        pecas.toFixed(2).replace('.', ','),
+        mo.toFixed(2).replace('.', ','),
+        total.toFixed(2).replace('.', ','),
+        e.num_orcamento || '',
+        e.num_os || '',
+        e.num_nf || ''
+      ];
+
+      linhas.push(colunas.map(v => `"${String(v !== undefined && v !== null ? v : '').replace(/"/g, '""')}"`).join(';'));
+    });
+
+    const csvContent = '\uFEFF' + linhas.join('\r\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `relatorio_geral_bi_patio_jbcunha_${agora.toISOString().slice(0,10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    this.toast('Exportação BI para Excel/PowerBI gerada com sucesso!', 'success');
+  },
+
+  imprimirRelatorioGeral() {
+    window.print();
+  },
+
+  // ══════════════════════════════════════════════════════════════════
+  // MÓDULO DE ORÇAMENTO & PRECIFICAÇÃO DO VEÍCULO (NFS-e)
+  // ══════════════════════════════════════════════════════════════════
+  _veiculoOrcamentoAtivo: null,
+
+  async abrirRelatorioVeiculo(equipId) {
+    const overlay = $id('overlay-relatorio-veiculo');
+    const content = $id('relatorio-veiculo-content');
+    if (!overlay || !content) return;
+
+    content.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text-muted)">Carregando dossiê técnico e dados de precificação...</div>';
+    overlay.style.display = 'flex';
+
+    try {
+      let eq = null;
+      const r = await fetch(`${API}/${equipId}`);
+      const j = await r.json();
+      if (j.success) eq = j.data;
+      if (!eq) throw new Error('Não foi possível carregar o veículo');
+
+      this._veiculoOrcamentoAtivo = eq;
+      this.renderizarDossieVeiculo(eq);
+    } catch (err) {
+      console.error('[Orçamento] Erro:', err);
+      content.innerHTML = `<div style="padding:40px;text-align:center;color:var(--c-red)">Erro ao carregar dados do veículo. ${escapar(err.message)}</div>`;
+    }
+  },
+
+  fecharRelatorioVeiculo() {
+    const overlay = $id('overlay-relatorio-veiculo');
+    if (overlay) overlay.style.display = 'none';
+    this._veiculoOrcamentoAtivo = null;
+  },
+
+  renderizarDossieVeiculo(eq) {
+    const content = $id('relatorio-veiculo-content');
+    if (!content) return;
+
+    const servicos = Array.isArray(eq.servicos) ? eq.servicos : [];
+    const custos = Array.isArray(eq.custos_diretos) ? eq.custos_diretos : [];
+
+    const totalMO = servicos.reduce((acc, s) => acc + (parseFloat(s.valor) || 0), 0);
+    const totalPecas = custos.reduce((acc, c) => acc + (parseFloat(c.valor_atribuido) || 0), 0);
+    const totalGeral = totalMO + totalPecas;
+
+    const fmtM = v => Number(v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    const fmtD = iso => {
+      if (!iso) return '—';
+      try { return new Date(iso).toLocaleDateString('pt-BR', { day:'2-digit', month:'2-digit', year:'numeric' }); }
+      catch(_) { return iso; }
+    };
+
+    const estadoLabel = LABEL_ESTADO_FULL[eq.estado] || eq.estado;
+
+    content.innerHTML = `
+      <div class="relatorio-sheet" id="sheet-imprimivel">
+        <!-- Cabeçalho Oficial Corporativo -->
+        <div class="sheet-header">
+          <div>
+            <div class="sheet-brand-title">JB CUNHA</div>
+            <div class="sheet-brand-sub">SOLUÇÕES INDUSTRIAIS, MECÂNICAS & HIDRÁULICAS</div>
+            <div style="font-size:0.75rem;color:#6b7280;margin-top:4px">
+              CNPJ: 22.842.109/0001-40 · contato@jbcunha.com.br · Pátio Operacional São Luís - MA
+            </div>
+          </div>
+          <div class="sheet-doc-meta">
+            <div class="sheet-doc-badge">DOCUMENTO TÉCNICO OFICIAL</div>
+            <div><strong>ORDEM DE SERVIÇO & PRECIFICAÇÃO NFS-e</strong></div>
+            <div>Atendimento: <strong>${escapar(eq.numero || `ATD-${String(eq.id).padStart(3, '0')}`)}</strong></div>
+            <div>Data de Emissão: <strong>${fmtD(new Date().toISOString())}</strong></div>
+            <div>Status: <strong>${estadoLabel}</strong></div>
+          </div>
+        </div>
+
+        <!-- Identificação Completa do Ativo & Requisitante -->
+        <div class="sheet-section">
+          <div class="sheet-section-title">
+            <span>1. Identificação do Veículo / Equipamento & Cliente</span>
+          </div>
+          <div class="sheet-info-grid">
+            <div class="sheet-field">
+              <label>Equipamento / Modelo</label>
+              <strong>${escapar(eq.equipamento || '—')}</strong>
+            </div>
+            <div class="sheet-field">
+              <label>Tag / Frota</label>
+              <strong>${escapar(eq.tag || '—')}</strong>
+            </div>
+            <div class="sheet-field">
+              <label>Placa Oficial</label>
+              ${eq.placa ? `
+                <div class="placa-badge" style="transform:scale(0.9);transform-origin:left center" title="Placa do Veículo">
+                  <div class="placa-badge-topo">BRASIL</div>
+                  <div class="placa-badge-num">${escapar(eq.placa)}</div>
+                </div>` : '<span style="color:#9ca3af;font-style:italic">Não informada</span>'
+              }
+            </div>
+            <div class="sheet-field">
+              <label>Horímetro Operacional</label>
+              <span>${eq.horimetro ? `<strong>${escapar(eq.horimetro)}</strong>` : '<span style="color:#9ca3af">—</span>'}</span>
+            </div>
+            <div class="sheet-field">
+              <label>Quilometragem (KM)</label>
+              <span>${eq.km ? `<strong>${escapar(eq.km)}</strong> km` : '<span style="color:#9ca3af">—</span>'}</span>
+            </div>
+            <div class="sheet-field">
+              <label>Localização / Baia</label>
+              <span>${escapar(eq.localizacao || 'Baia 01')}</span>
+            </div>
+            <div class="sheet-field">
+              <label>Empresa / Cliente</label>
+              <strong>${escapar(eq.empresa || '—')}</strong>
+            </div>
+            <div class="sheet-field">
+              <label>Responsável Requisitante</label>
+              <span>${escapar(eq.responsavel_cliente || 'Gerência de Frota')}</span>
+            </div>
+            <div class="sheet-field">
+              <label>Responsável Técnico</label>
+              <span>${escapar(eq.responsavel_tecnico || 'Chefe de Oficina')}</span>
+            </div>
+            <div class="sheet-field" style="grid-column: span 3">
+              <label>Diagnóstico / Queixa Inicial do Cliente</label>
+              <span style="color:#374151">${escapar(eq.queixa_inicial || 'Revisão preventiva / corretiva operacional solicitada pelo cliente.')}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quadro 1: Discriminação dos Serviços Realizados & Mão de Obra -->
+        <div class="sheet-section">
+          <div class="sheet-section-title">
+            <span>2. Serviços Executados & Mão de Obra Especializada (${servicos.length})</span>
+            <span style="font-size:0.75rem;font-weight:600;color:#003399">Subtotal: ${fmtM(totalMO)}</span>
+          </div>
+          ${servicos.length > 0 ? `
+            <table class="sheet-table">
+              <thead>
+                <tr>
+                  <th style="width:35px">#</th>
+                  <th>Descrição do Serviço / Escopo Técnico</th>
+                  <th>Responsável</th>
+                  <th>Status</th>
+                  <th style="width:70px;text-align:right">Horas</th>
+                  <th style="width:130px;text-align:right">Mão de Obra (R$)</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${servicos.map((s, idx) => `
+                  <tr>
+                    <td>${idx + 1}</td>
+                    <td>
+                      <strong>${escapar(s.titulo || 'Serviço')}</strong>
+                      ${s.descricao ? `<div style="font-size:0.72rem;color:#6b7280">${escapar(s.descricao)}</div>` : ''}
+                    </td>
+                    <td>${escapar(s.responsavel || eq.responsavel_tecnico || 'Equipe')}</td>
+                    <td><span style="font-size:0.74rem">${LABEL_ESTADO_FULL[s.estado] || s.estado || 'Executado'}</span></td>
+                    <td style="text-align:right;font-family:var(--font-mono)">${s.horas || '—'}</td>
+                    <td style="text-align:right">
+                      <div class="no-print" style="display:inline-flex;align-items:center;gap:4px">
+                        <span style="font-size:0.72rem;color:#6b7280">R$</span>
+                        <input type="number" step="0.01" min="0" value="${s.valor || 0}"
+                          onchange="App.atualizarValorServicoOrcamento(${eq.id}, ${s.id}, this.value)"
+                          title="Clique para editar o valor de mão de obra deste serviço"
+                          style="width:95px;padding:3px 6px;text-align:right;font-family:var(--font-mono);font-weight:700;border:1px solid #d1d5db;border-radius:4px">
+                      </div>
+                      <span class="print-only" style="display:none;font-family:var(--font-mono);font-weight:700">${fmtM(s.valor || 0)}</span>
+                    </td>
+                  </tr>
+                `).join('')}
+                <tr class="sheet-subtotal-row">
+                  <td colspan="5" style="text-align:right">SUBTOTAL MÃO DE OBRA (SERVIÇOS):</td>
+                  <td style="text-align:right;font-family:var(--font-mono)">${fmtM(totalMO)}</td>
+                </tr>
+              </tbody>
+            </table>` : `
+            <div style="padding:14px;background:#f9fafb;border-radius:6px;border:1px dashed #d1d5db;font-size:0.78rem;color:#6b7280;text-align:center">
+              Nenhum serviço registrado neste atendimento. Adicione serviços no detalhe do veículo.
+            </div>`
+          }
+        </div>
+
+        <!-- Quadro 2: Peças, Insumos & Compras Diretas Atribuídas -->
+        <div class="sheet-section">
+          <div class="sheet-section-title">
+            <span>3. Peças, Insumos & Custos de Compra Atribuídos (${custos.length})</span>
+            <span style="font-size:0.75rem;font-weight:600;color:#003399">Subtotal: ${fmtM(totalPecas)}</span>
+          </div>
+          ${custos.length > 0 ? `
+            <table class="sheet-table">
+              <thead>
+                <tr>
+                  <th style="width:35px">#</th>
+                  <th style="width:75px">Pedido</th>
+                  <th>Peça / Insumo Aplicado</th>
+                  <th>Solicitante / Aprovador</th>
+                  <th style="width:90px">Data</th>
+                  <th style="width:130px;text-align:right">Valor Atribuído</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${custos.map((c, idx) => `
+                  <tr>
+                    <td>${idx + 1}</td>
+                    <td><strong>${escapar(c.numero_compra || 'CD')}</strong></td>
+                    <td>
+                      <strong>${escapar(c.descricao)}</strong>
+                      ${c.fornecedor ? `<div style="font-size:0.72rem;color:#6b7280">Fornecedor: ${escapar(c.fornecedor)}</div>` : ''}
+                    </td>
+                    <td style="font-size:0.75rem">
+                      ${escapar(c.solicitante || '—')}
+                      ${c.autorizado_por ? `<div style="font-size:0.7rem;color:#6b7280">Aprov: ${escapar(c.autorizado_por)}</div>` : ''}
+                    </td>
+                    <td style="font-size:0.75rem">${fmtD(c.data)}</td>
+                    <td style="text-align:right;font-family:var(--font-mono);font-weight:700">${fmtM(c.valor_atribuido)}</td>
+                  </tr>
+                `).join('')}
+                <tr class="sheet-subtotal-row">
+                  <td colspan="5" style="text-align:right">SUBTOTAL PEÇAS & INSUMOS APLICADOS:</td>
+                  <td style="text-align:right;font-family:var(--font-mono)">${fmtM(totalPecas)}</td>
+                </tr>
+              </tbody>
+            </table>` : `
+            <div style="padding:14px;background:#f9fafb;border-radius:6px;border:1px dashed #d1d5db;font-size:0.78rem;color:#6b7280;text-align:center">
+              Nenhuma compra direta de peças vinculada a este veículo.
+            </div>`
+          }
+        </div>
+
+        <!-- Quadro 3: Demonstrativo Financeiro & Faturamento para NFS-e -->
+        <div class="sheet-section">
+          <div class="sheet-financeiro-box">
+            <div class="sheet-financeiro-grid">
+              <div class="sheet-totais-list">
+                <div class="sheet-total-item">
+                  <span>Subtotal Peças e Insumos:</span>
+                  <strong style="font-family:var(--font-mono)">${fmtM(totalPecas)}</strong>
+                </div>
+                <div class="sheet-total-item">
+                  <span>Subtotal Mão de Obra Especializada:</span>
+                  <strong style="font-family:var(--font-mono)">${fmtM(totalMO)}</strong>
+                </div>
+                <div class="sheet-total-item destaque">
+                  <span>VALOR TOTAL DO ORÇAMENTO / BASE NFS-e:</span>
+                  <span style="font-family:var(--font-mono)">${fmtM(totalGeral)}</span>
+                </div>
+              </div>
+
+              <div class="sheet-nfse-box no-print">
+                <div style="font-weight:700;color:#003399;margin-bottom:8px;font-size:0.78rem;text-transform:uppercase">
+                  Dados de Faturamento & Controle Interno
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+                  <div>
+                    <label for="sheet-num-orcamento">N° Orçamento</label>
+                    <input type="text" id="sheet-num-orcamento" class="form-control" value="${escapar(eq.num_orcamento || '')}" placeholder="Ex: ORC-2026/042" style="font-size:0.78rem;padding:4px 8px;height:28px">
+                  </div>
+                  <div>
+                    <label for="sheet-num-os">N° Ordem de Serviço</label>
+                    <input type="text" id="sheet-num-os" class="form-control" value="${escapar(eq.num_os || '')}" placeholder="Ex: OS-9884" style="font-size:0.78rem;padding:4px 8px;height:28px">
+                  </div>
+                </div>
+                <div style="margin-bottom:8px">
+                  <label for="sheet-num-nf">N° Nota Fiscal de Serviço (NFS-e)</label>
+                  <input type="text" id="sheet-num-nf" class="form-control" value="${escapar(eq.num_nf || '')}" placeholder="Ex: NFS-e 14258" style="font-size:0.78rem;padding:4px 8px;height:28px">
+                </div>
+                <div style="margin-bottom:8px">
+                  <label for="sheet-obs-orcamento">Observações Comerciais / Condições</label>
+                  <textarea id="sheet-obs-orcamento" class="form-control" rows="2" placeholder="Ex: Condição 28 DDL. Garantia de 90 dias nos serviços prestados." style="font-size:0.75rem;padding:4px 8px">${escapar(eq.obs_orcamento || '')}</textarea>
+                </div>
+                <button class="btn btn-sm btn-primary" onclick="App.salvarDadosOrcamentoVeiculo(${eq.id})" style="width:100%;font-size:0.75rem;padding:5px">
+                  💾 Salvar Dados do Orçamento
+                </button>
+              </div>
+            </div>
+            ${eq.obs_orcamento ? `
+              <div style="margin-top:12px;padding-top:10px;border-top:1px solid #cbd5e1;font-size:0.75rem;color:#475569">
+                <strong>Condições Comerciais:</strong> ${escapar(eq.obs_orcamento)}
+              </div>` : ''
+            }
+          </div>
+        </div>
+
+        <!-- Quadro 4: Assinaturas e Vistos Oficiais -->
+        <div class="sheet-assinaturas">
+          <div class="sheet-assinatura-col">
+            <div class="sheet-linha-assinatura"></div>
+            <div class="sheet-cargo-assinatura">Engenheiro Responsável Técnico</div>
+            <div class="sheet-desc-assinatura">Elaboração do Orçamento & Validação</div>
+          </div>
+          <div class="sheet-assinatura-col">
+            <div class="sheet-linha-assinatura"></div>
+            <div class="sheet-cargo-assinatura">Setor Financeiro / Faturamento</div>
+            <div class="sheet-desc-assinatura">Conferência & Emissão de NFS-e</div>
+          </div>
+          <div class="sheet-assinatura-col">
+            <div class="sheet-linha-assinatura"></div>
+            <div class="sheet-cargo-assinatura">Cliente / Requisitante</div>
+            <div class="sheet-desc-assinatura">De Acordo & Aprovação de Execução</div>
+          </div>
+        </div>
+      </div>
+    `;
+  },
+
+  async atualizarValorServicoOrcamento(equipId, servicoId, novoValor) {
+    const val = parseFloat(novoValor) || 0;
+    try {
+      const r = await fetch(`${API}/${equipId}/servicos/${servicoId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ valor: val })
+      });
+      const j = await r.json();
+      if (j.success) {
+        this.toast('Valor de mão de obra atualizado!', 'success');
+        if (this._veiculoOrcamentoAtivo && this._veiculoOrcamentoAtivo.id == equipId) {
+          const s = (this._veiculoOrcamentoAtivo.servicos || []).find(x => x.id == servicoId);
+          if (s) s.valor = val;
+          this.renderizarDossieVeiculo(this._veiculoOrcamentoAtivo);
+        }
+      } else {
+        this.toast(j.message || 'Erro ao atualizar valor', 'error');
+      }
+    } catch (_) {
+      this.toast('Erro de comunicação com o servidor', 'error');
+    }
+  },
+
+  async salvarDadosOrcamentoVeiculo(equipId) {
+    const numOrc = $id('sheet-num-orcamento')?.value || '';
+    const numOs = $id('sheet-num-os')?.value || '';
+    const numNf = $id('sheet-num-nf')?.value || '';
+    const obs = $id('sheet-obs-orcamento')?.value || '';
+
+    try {
+      const r = await fetch(`${API}/${equipId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          num_orcamento: numOrc,
+          num_os: numOs,
+          num_nf: numNf,
+          obs_orcamento: obs
+        })
+      });
+      const j = await r.json();
+      if (j.success) {
+        this.toast('Dados do orçamento e NFS-e gravados!', 'success');
+        if (this._veiculoOrcamentoAtivo) {
+          this._veiculoOrcamentoAtivo.num_orcamento = numOrc;
+          this._veiculoOrcamentoAtivo.num_os = numOs;
+          this._veiculoOrcamentoAtivo.num_nf = numNf;
+          this._veiculoOrcamentoAtivo.obs_orcamento = obs;
+          this.renderizarDossieVeiculo(this._veiculoOrcamentoAtivo);
+        }
+        if (this.viewAtual === 'painel') this.carregarPainel();
+        if (this.viewAtual === 'relatorios') this.carregarRelatoriosBI();
+      } else {
+        this.toast(j.message || 'Erro ao gravar dados', 'error');
+      }
+    } catch (_) {
+      this.toast('Erro de comunicação ao salvar orçamento', 'error');
+    }
+  },
+
+  exportarCsvDossieVeiculo() {
+    const eq = this._veiculoOrcamentoAtivo;
+    if (!eq) return;
+
+    const servicos = Array.isArray(eq.servicos) ? eq.servicos : [];
+    const custos = Array.isArray(eq.custos_diretos) ? eq.custos_diretos : [];
+
+    const linhas = [
+      `"DOSSIE DE ORCAMENTO E PRECIFICAÇÃO NFS-E - JB CUNHA"`,
+      `"Veiculo";"${(eq.equipamento || '').replace(/"/g, '""')}"`,
+      `"Tag";"${(eq.tag || '').replace(/"/g, '""')}"`,
+      `"Placa";"${(eq.placa || '').replace(/"/g, '""')}"`,
+      `"Horimetro";"${(eq.horimetro || '').replace(/"/g, '""')}"`,
+      `"Quilometragem";"${(eq.km || '').replace(/"/g, '""')}"`,
+      `"Cliente";"${(eq.empresa || '').replace(/"/g, '""')}"`,
+      `"Data Entrada";"${eq.data_entrada || ''}"`,
+      `"Numero OS";"${(eq.num_os || '').replace(/"/g, '""')}"`,
+      `"Numero Orcamento";"${(eq.num_orcamento || '').replace(/"/g, '""')}"`,
+      `"Numero NFSe";"${(eq.num_nf || '').replace(/"/g, '""')}"`,
+      ``,
+      `"DISCRIMINACAO DE SERVICOS (MAO DE OBRA)"`,
+      `"Item";"Servico";"Responsavel";"Status";"Horas";"Valor_BRL"`
+    ];
+
+    let totalMO = 0;
+    servicos.forEach((s, idx) => {
+      const v = parseFloat(s.valor) || 0;
+      totalMO += v;
+      linhas.push(`"${idx + 1}";"${(s.titulo || '').replace(/"/g, '""')}";"${(s.responsavel || '').replace(/"/g, '""')}";"${s.estado || ''}";"${s.horas || ''}";"${v.toFixed(2).replace('.', ',')}"`);
+    });
+    linhas.push(`"";"SUBTOTAL MAO DE OBRA";"";"";"";"${totalMO.toFixed(2).replace('.', ',')}"`);
+
+    linhas.push(``);
+    linhas.push(`"DISCRIMINACAO DE PECAS E COMPRAS DIRETAS"`);
+    linhas.push(`"Item";"Pedido";"Descricao_Peca";"Fornecedor";"Solicitante";"Data";"Valor_Atribuido_BRL"`);
+
+    let totalPecas = 0;
+    custos.forEach((c, idx) => {
+      const v = parseFloat(c.valor_atribuido) || 0;
+      totalPecas += v;
+      linhas.push(`"${idx + 1}";"${(c.numero_compra || '').replace(/"/g, '""')}";"${(c.descricao || '').replace(/"/g, '""')}";"${(c.fornecedor || '').replace(/"/g, '""')}";"${(c.solicitante || '').replace(/"/g, '""')}";"${c.data || ''}";"${v.toFixed(2).replace('.', ',')}"`);
+    });
+    linhas.push(`"";"SUBTOTAL PECAS";"";"";"";"";"${totalPecas.toFixed(2).replace('.', ',')}"`);
+
+    const totalGeral = totalMO + totalPecas;
+    linhas.push(``);
+    linhas.push(`"TOTAL GERAL DO ORCAMENTO (BASE NFSe)";"";"";"";"";"";"${totalGeral.toFixed(2).replace('.', ',')}"`);
+
+    const csvContent = '\uFEFF' + linhas.join('\r\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `orcamento_${(eq.tag || `veiculo_${eq.id}`).toLowerCase().replace(/\s+/g, '_')}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    this.toast('Dossiê do veículo exportado em CSV!', 'success');
+  },
+
+  imprimirDossieVeiculo() {
+    window.print();
   },
 
   // ── Toast ────────────────────────────────────────────────────────
