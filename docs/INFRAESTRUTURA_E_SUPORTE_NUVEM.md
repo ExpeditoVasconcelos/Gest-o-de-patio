@@ -29,7 +29,7 @@ A aplicação da **Central de Operações JB Cunha** encontra-se em ambiente de 
 
 ---
 
-## 2. Arquitetura da Solução na Nuvem
+## 2. Arquitetura da Solução na Nuvem com Banco GLPI
 
 ```mermaid
 graph TD
@@ -40,18 +40,27 @@ graph TD
         CronBackup["Cron Diário (03:00 AM) -> /opt/backups/jbcunha"]
         DockerDaemon["Docker Engine 29.8.2"]
         
-        subgraph DockerNet["Docker Bridge: jbcunha-net"]
-            subgraph Container["Container: jbcunha-gestao-patio (User: jbcunha non-root)"]
+        subgraph DockerNet["Docker Bridge: jbcunha-net (Rede Privada Isolada)"]
+            subgraph WebAppContainer["Container: jbcunha-gestao-patio (User: jbcunha non-root)"]
                 SecHeaders["Hardening HTTP Headers (OWASP) + Rate Limiter Global"]
                 ExpressApp["Node.js 20 LTS (Express API Gateway)"]
                 AuthEngine["AuthService (scrypt + HMAC-SHA256 + Dual-Layer Rate Limiting)"]
                 SSEBroadcaster["SSE Broadcaster (Notificações em Tempo Real)"]
+                GlpiDbConnector["GlpiDatabase Adapter (mysql2/promise Pool)"]
                 StaticFiles["Servidor de Arquivos Estáticos (Desktop SPA + Mobile PWA)"]
+            end
+            
+            subgraph DBContainer["Container: jbcunha-glpi-db (MariaDB 10.11 LTS - Oficial GLPI)"]
+                MariaDBEngine["MariaDB InnoDB Engine (Porta 3306 Interna)"]
+                GLPITables["Schema GLPI 10.x:\n• glpi_tickets (Chamados/O.S.)\n• glpi_computers (Máquinas/Equipamentos)\n• glpi_tickettasks (Tarefas/Atividades)\n• glpi_ticketfollowups (Timeline/Histórico)\n• glpi_documents (Fotos/Laudos)\n• glpi_jbc_compras (Compras/Orçamentos)\n• glpi_locations (12 Baias do Pátio)\n• glpi_users (Usuários RBAC)"]
             end
         end
         
-        HostStorageData["/opt/jbcunha-gestao-patio/api-gateway/data"] -->|Volume Persistente| VolData["/app/api-gateway/data (database.json, usuarios.json, .auth_secret)"]
+        HostStorageDB["Volume Docker: glpi-db-data"] -->|Volume Persistente| MariaDBEngine
+        HostStorageData["/opt/jbcunha-gestao-patio/api-gateway/data"] -->|Volume Persistente| VolData["/app/api-gateway/data (Cache JSON de Resiliência)"]
         HostStorageUploads["/opt/jbcunha-gestao-patio/web-app/uploads"] -->|Volume Persistente| VolUploads["/app/web-app/uploads (Fotos de vistorias e peças)"]
+        
+        GlpiDbConnector -->|TCP 3306 Privado| MariaDBEngine
     end
 ```
 
@@ -61,14 +70,20 @@ graph TD
    - PWA Service Worker (`service-worker.js`) com manifesto offline para o time de campo.
    - Zero dependências de build pesadas no cliente (carregamento ultra-rápido).
 2. **Backend API Gateway**:
-   - Node.js 20 LTS com Express 4.19.
+   - Node.js 20 LTS com Express 4.19 e conector `mysql2/promise`.
    - RBAC granular de 3 níveis: `admin` (Aprovador), `usuario` (Solicitante/Técnico) e `cliente` (Portal Externo segregado).
    - Server-Sent Events (SSE) em `/api/jbc/v1/mobile/events` para push updates em tempo real.
-3. **Persistência de Dados**:
-   - Formato Flat-file JSON com atomicidade via `fs.writeFileSync` síncrono e buffers em memória.
-   - `database.json`: Veículos, baias, apontamentos de horas, peças e histórico de serviços.
-   - `usuarios.json`: Credenciais criptografadas via `crypto.scrypt` com salt único por usuário.
-   - `.auth_secret`: Chave criptográfica aleatória persistida de 96 caracteres hexadecimais para assinatura JWT.
+3. **Persistência de Dados Relacional GLPI (MariaDB 10.11)**:
+   - **Banco Oficial GLPI:** Container dedicado `jbcunha-glpi-db` com modelagem ITIL idêntica à utilizada por grandes players do mercado.
+   - `glpi_tickets`: Chamados, atendimentos e ordens de serviço.
+   - `glpi_computers`: Máquinas e equipamentos pesados, tags, placas, horímetros e seriais.
+   - `glpi_tickettasks`: Atividades e serviços executados com status ITIL (pendente, em andamento, concluída).
+   - `glpi_ticketfollowups`: Linha do tempo e histórico de apontamentos.
+   - `glpi_documents` / `glpi_documents_items`: Fotos de vistorias e laudos periciais.
+   - `glpi_jbc_compras`: Gestão de solicitações e aprovação de compras da diretoria.
+   - `glpi_locations` & `glpi_jbc_garagem`: Mapeamento das 12 baias padrão da oficina.
+   - `glpi_users`: Cadastro de usuários e credenciais protegidas com `scrypt`.
+   - **Camada de Resiliência Híbrida:** Backup contínuo em flat-file JSON no host que garante continuidade operacional imediata mesmo durante manutenções programadas de banco de dados.
 
 ---
 

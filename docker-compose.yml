@@ -1,22 +1,53 @@
 version: '3.8'
 
 services:
+  glpi-db:
+    image: mariadb:10.11
+    container_name: jbcunha-glpi-db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-jbcunha_root_db_secret}
+      MYSQL_DATABASE: ${DB_NAME:-glpidb}
+      MYSQL_USER: ${DB_USER:-glpi}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-jbcunha_glpi_secret_pass}
+    volumes:
+      - glpi-db-data:/var/lib/mysql
+      - ./database/init-glpi.sql:/docker-entrypoint-initdb.d/init-glpi.sql:ro
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "5"
+    networks:
+      - jbcunha-net
+
   gestao-patio:
     build:
       context: .
       dockerfile: Dockerfile
     container_name: jbcunha-gestao-patio
     restart: unless-stopped
+    depends_on:
+      glpi-db:
+        condition: service_healthy
     ports:
       - "80:3000"
       - "3000:3000"
     environment:
       - NODE_ENV=production
       - PORT=3000
-      - GLPI_ENABLED=false
-      # - GLPI_URL=https://glpi.suaempresa.com.br/apirest.php
-      # - GLPI_APP_TOKEN=seu_app_token_aqui
-      # - GLPI_USER_TOKEN=seu_user_token_aqui
+      - DB_HOST=glpi-db
+      - DB_PORT=3306
+      - DB_NAME=glpidb
+      - DB_USER=glpi
+      - DB_PASSWORD=jbcunha_glpi_secret_pass
+      - GLPI_ENABLED=true
     volumes:
       - ./api-gateway/data:/app/api-gateway/data
       - ./web-app/uploads:/app/web-app/uploads
@@ -25,7 +56,7 @@ services:
       interval: 30s
       timeout: 5s
       retries: 3
-      start_period: 5s
+      start_period: 10s
     logging:
       driver: "json-file"
       options:
@@ -33,6 +64,10 @@ services:
         max-file: "5"
     networks:
       - jbcunha-net
+
+volumes:
+  glpi-db-data:
+    driver: local
 
 networks:
   jbcunha-net:

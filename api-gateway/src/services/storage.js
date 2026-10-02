@@ -7,6 +7,7 @@ const fs = require('fs');
 const path = require('path');
 const EventEmitter = require('events');
 const config = require('../config');
+const glpiDb = require('./glpiDb');
 
 // ────────────────────────────────────────────────────────────
 // Constantes
@@ -58,255 +59,16 @@ const GRUPO_ESTADO = {
 
 function gerarSeedData() {
   const agora = new Date();
-  const h = (d) => d.toISOString();
-  const diasAtras = (n) => { const d = new Date(agora); d.setDate(d.getDate() - n); return d; };
-  const horasAtras = (n) => { const d = new Date(agora); d.setHours(d.getHours() - n); return d; };
-
   return {
-    versao: '3.0',
-    migrado_em: h(agora),
+    versao: '3.1',
+    migrado_em: agora.toISOString(),
     compras_diretas: [],
-    equipamentos: [
-      {
-        id: 1,
-        numero: 'ATD-001',
-        tag: 'CAT-320',
-        empresa: 'Empresa ABC Mineração',
-        responsavel_cliente: 'Fábio Mendes',
-        responsavel_tecnico: 'João Silva',
-        equipamento: 'Escavadeira Hidráulica CAT 320D',
-        placa: 'CAT-320',
-        horimetro: '7.890 h',
-        km: '',
-        localizacao: 'Baia 03',
-        estado: 'em_execucao',
-        estado_motivo: '',
-        prioridade: 'Alta',
-        queixa_inicial: 'Máquina parou no talude com vazamento severo de óleo no comando hidráulico.',
-        data_entrada: h(diasAtras(2)),
-        previsao_entrega: h(new Date(agora.getFullYear(), agora.getMonth(), agora.getDate() + 2)),
-        data_conclusao: null,
-        data_entrega: null,
-        num_orcamento: '2026-0187',
-        num_os: '2026-0098',
-        num_nf: '',
-        servicos: [
-          {
-            id: 1,
-            titulo: 'Reparo hidráulico — Comando de lança',
-            descricao: 'Vazamento identificado no bloco de comando. Necessário desmontagem completa.',
-            responsavel: 'João Silva',
-            estado: 'em_execucao',
-            estado_motivo: '',
-            criado_em: h(diasAtras(2)),
-            atualizado_em: h(horasAtras(3)),
-            atividades: [
-              { id: 1, descricao: 'Desmontar mangueiras e coletor de retorno', responsavel: 'João Silva', estado: 'concluida', estado_motivo: '', inicio: h(diasAtras(2)), atualizacao: h(diasAtras(1)), concluida: true, concluida_em: h(diasAtras(1)), historico: [{ acao: 'concluida', usuario: 'João Silva', data: h(diasAtras(1)), nota: 'Desmontagem concluída sem avarias' }] },
-              { id: 2, descricao: 'Retirar bloco de comando para bancada', responsavel: 'João Silva', estado: 'concluida', estado_motivo: '', inicio: h(diasAtras(1)), atualizacao: h(horasAtras(12)), concluida: true, concluida_em: h(horasAtras(12)), historico: [{ acao: 'concluida', usuario: 'João Silva', data: h(horasAtras(12)), nota: 'Instalado na bancada' }] },
-              { id: 3, descricao: 'Substituição das vedações e retífica dos carretéis', responsavel: 'João Silva', estado: 'em_andamento', estado_motivo: '', inicio: h(horasAtras(3)), atualizacao: h(horasAtras(1)), concluida: false, concluida_em: null, historico: [{ acao: 'iniciada', usuario: 'João Silva', data: h(horasAtras(3)), nota: 'Iniciada montagem do kit de vedação' }] },
-              { id: 4, descricao: 'Teste hidrostático de pressão a 250 bar', responsavel: 'João Silva', estado: 'pendente', estado_motivo: '', inicio: null, atualizacao: null, concluida: false, concluida_em: null, historico: [] },
-              { id: 5, descricao: 'Liberação final e teste de ciclagem da lança', responsavel: 'João Silva', estado: 'pendente', estado_motivo: '', inicio: null, atualizacao: null, concluida: false, concluida_em: null, historico: [] }
-            ]
-          }
-        ],
-        dossie: [
-          { id: 1, autor: 'Carlos (Chefe de Oficina)', data: h(diasAtras(2)), texto: 'Equipamento posicionado na Baia 03 para inspeção.', foto: '' },
-          { id: 2, autor: 'João Silva', data: h(horasAtras(12)), texto: 'Comando hidráulico removido para bancada de teste.', foto: '' },
-          { id: 3, autor: 'João Silva', data: h(horasAtras(1)), texto: 'Kit de vedação em montagem. Previsto conclusão hoje à tarde.', foto: '' }
-        ],
-        fotos: []
-      },
-      {
-        id: 2,
-        numero: 'ATD-002',
-        tag: 'CIL-TEL-03',
-        empresa: 'XYZ Siderúrgica',
-        responsavel_cliente: 'Roberto Alcântara',
-        responsavel_tecnico: 'Geraldo Alcântara',
-        equipamento: 'Haste do Cilindro Basculante Telescópico',
-        placa: '',
-        horimetro: '',
-        km: '',
-        localizacao: 'Setor de Usinagem',
-        estado: 'em_fabricacao',
-        estado_motivo: '',
-        prioridade: 'Normal',
-        queixa_inicial: 'Haste com riscos longitudinais e perda de cromo duro.',
-        data_entrada: h(diasAtras(3)),
-        previsao_entrega: h(new Date(agora.getFullYear(), agora.getMonth(), agora.getDate() + 1)),
-        data_conclusao: null,
-        data_entrega: null,
-        num_orcamento: '2026-0170',
-        num_os: '2026-0091',
-        num_nf: '',
-        servicos: [
-          {
-            id: 1,
-            titulo: 'Retífica, brunimento e metalização da haste',
-            descricao: '3ª seção da haste hidráulica. Polimento espelhado e proteção superficial.',
-            responsavel: 'Geraldo Alcântara',
-            estado: 'em_fabricacao',
-            estado_motivo: '',
-            criado_em: h(diasAtras(3)),
-            atualizado_em: h(horasAtras(2)),
-            atividades: [
-              { id: 1, descricao: 'Alinhamento no torno horizontal pesado', responsavel: 'Geraldo Alcântara', estado: 'concluida', estado_motivo: '', inicio: h(diasAtras(3)), atualizacao: h(diasAtras(2)), concluida: true, concluida_em: h(diasAtras(2)), historico: [{ acao: 'concluida', usuario: 'Geraldo Alcântara', data: h(diasAtras(2)), nota: 'Centragem conferida com relógio comparador' }] },
-              { id: 2, descricao: 'Passe de desbaste e retífica cilíndrica', responsavel: 'Geraldo Alcântara', estado: 'concluida', estado_motivo: '', inicio: h(diasAtras(2)), atualizacao: h(diasAtras(1)), concluida: true, concluida_em: h(diasAtras(1)), historico: [{ acao: 'concluida', usuario: 'Geraldo Alcântara', data: h(diasAtras(1)), nota: 'Desbaste com tolerância de 0.02mm' }] },
-              { id: 3, descricao: 'Polimento espelhado e banho de proteção', responsavel: 'Geraldo Alcântara', estado: 'em_andamento', estado_motivo: '', inicio: h(horasAtras(4)), atualizacao: h(horasAtras(2)), concluida: false, concluida_em: null, historico: [{ acao: 'iniciada', usuario: 'Geraldo Alcântara', data: h(horasAtras(4)), nota: 'Iniciado polimento com pasta diamantada' }] }
-            ]
-          }
-        ],
-        dossie: [
-          { id: 1, autor: 'Carlos (Chefe de Oficina)', data: h(diasAtras(3)), texto: 'Componente recebido. Alocado no setor de usinagem.', foto: '' },
-          { id: 2, autor: 'Geraldo Alcântara', data: h(horasAtras(2)), texto: 'Retífica finalizada. Polimento em andamento.', foto: '' }
-        ],
-        fotos: []
-      },
-      {
-        id: 3,
-        numero: 'ATD-003',
-        tag: 'VOL-FMX-89',
-        empresa: 'GHI Construções Pesadas',
-        responsavel_cliente: 'Marcos Pinheiro',
-        responsavel_tecnico: 'Carlos Eduardo',
-        equipamento: 'Caminhão Basculante Volvo FMX 500 8x4',
-        placa: 'JBC-4890',
-        horimetro: '4.120 h',
-        km: '184.200 km',
-        localizacao: 'Setor de Solda',
-        estado: 'aguardando_material',
-        estado_motivo: 'Aguardando entrega das chapas Hardox 450 pelo fornecedor metalúrgico. Previsão: amanhã.',
-        prioridade: 'Urgente',
-        queixa_inicial: 'Trinca próxima ao mancal de basculamento da caçamba. Risco de ruptura.',
-        data_entrada: h(diasAtras(6)),
-        previsao_entrega: h(diasAtras(2)),
-        data_conclusao: null,
-        data_entrega: null,
-        num_orcamento: '2026-0192',
-        num_os: '2026-0105',
-        num_nf: '',
-        servicos: [
-          {
-            id: 1,
-            titulo: 'Reforço estrutural — viga da caçamba',
-            descricao: 'Soldagem de trincas na viga principal com chapa Hardox 450.',
-            responsavel: 'Carlos Eduardo',
-            estado: 'aguardando_material',
-            estado_motivo: 'Aguardando chapas Hardox 450 cortadas',
-            criado_em: h(diasAtras(6)),
-            atualizado_em: h(diasAtras(2)),
-            atividades: [
-              { id: 1, descricao: 'Goivagem das trincas e biselamento', responsavel: 'Carlos Eduardo', estado: 'concluida', estado_motivo: '', inicio: h(diasAtras(5)), atualizacao: h(diasAtras(5)), concluida: true, concluida_em: h(diasAtras(5)), historico: [{ acao: 'concluida', usuario: 'Carlos Eduardo', data: h(diasAtras(5)), nota: 'Trinca exposta e limpa' }] },
-              { id: 2, descricao: 'Receber chapas Hardox 450 cortadas a laser', responsavel: 'Carlos Eduardo', estado: 'bloqueada', estado_motivo: 'Fornecedor atrasou o corte a laser', inicio: h(diasAtras(2)), atualizacao: h(diasAtras(2)), concluida: false, concluida_em: null, historico: [{ acao: 'bloqueada', usuario: 'Carlos Eduardo', data: h(diasAtras(2)), nota: 'Fornecedor atrasou corte. Ligado cobrando prazo.' }] },
-              { id: 3, descricao: 'Soldagem MIG com arame tubular E71T-1', responsavel: 'Carlos Eduardo', estado: 'pendente', estado_motivo: '', inicio: null, atualizacao: null, concluida: false, concluida_em: null, historico: [] },
-              { id: 4, descricao: 'Teste de estanqueidade e pintura de proteção', responsavel: 'Carlos Eduardo', estado: 'pendente', estado_motivo: '', inicio: null, atualizacao: null, concluida: false, concluida_em: null, historico: [] }
-            ]
-          }
-        ],
-        dossie: [
-          { id: 1, autor: 'Carlos (Chefe de Oficina)', data: h(diasAtras(6)), texto: 'Caminhão posicionado no setor de solda. Prioridade urgente confirmada.', foto: '' },
-          { id: 2, autor: 'Carlos Eduardo', data: h(diasAtras(2)), texto: 'ATRASO: Chapas Hardox ainda não entregues. Entrei em contato com fornecedor.', foto: '' }
-        ],
-        fotos: []
-      },
-      {
-        id: 4,
-        numero: 'ATD-004',
-        tag: 'LIE-L580',
-        empresa: 'DEF Agroflorestal',
-        responsavel_cliente: 'Paulo Souza',
-        responsavel_tecnico: 'Marcos Vinicius',
-        equipamento: 'Pá Carregadeira Liebherr L580',
-        placa: 'AGR-5800',
-        horimetro: '3.410 h',
-        km: '',
-        localizacao: 'Pátio Externo',
-        estado: 'pronto',
-        estado_motivo: '',
-        prioridade: 'Normal',
-        queixa_inicial: 'Revisão periódica de 3.000 horas, troca de filtros e óleos térmicos.',
-        data_entrada: h(diasAtras(8)),
-        previsao_entrega: h(diasAtras(1)),
-        data_conclusao: h(diasAtras(1)),
-        data_entrega: null,
-        num_orcamento: '2026-0140',
-        num_os: '2026-0072',
-        num_nf: 'NF-89211',
-        servicos: [
-          {
-            id: 1,
-            titulo: 'Revisão periódica de 3.000 h',
-            descricao: 'Revisão preventiva padrão de contrato anual.',
-            responsavel: 'Marcos Vinicius',
-            estado: 'concluida',
-            estado_motivo: '',
-            criado_em: h(diasAtras(8)),
-            atualizado_em: h(diasAtras(1)),
-            atividades: [
-              { id: 1, descricao: 'Troca de óleo motor, transmissão e eixos', responsavel: 'Marcos Vinicius', estado: 'concluida', estado_motivo: '', inicio: h(diasAtras(6)), atualizacao: h(diasAtras(4)), concluida: true, concluida_em: h(diasAtras(4)), historico: [] },
-              { id: 2, descricao: 'Substituição de filtros de combustível e ar', responsavel: 'Marcos Vinicius', estado: 'concluida', estado_motivo: '', inicio: h(diasAtras(4)), atualizacao: h(diasAtras(2)), concluida: true, concluida_em: h(diasAtras(2)), historico: [] },
-              { id: 3, descricao: 'Teste de pressão hidráulica e frenagem', responsavel: 'Marcos Vinicius', estado: 'concluida', estado_motivo: '', inicio: h(diasAtras(2)), atualizacao: h(diasAtras(1)), concluida: true, concluida_em: h(diasAtras(1)), historico: [] }
-            ]
-          }
-        ],
-        dossie: [
-          { id: 1, autor: 'Carlos (Chefe de Oficina)', data: h(diasAtras(8)), texto: 'Máquina recebida para revisão periódica.', foto: '' },
-          { id: 2, autor: 'Marcos Vinicius', data: h(diasAtras(1)), texto: 'Revisão finalizada com sucesso. Aguardando retirada do cliente.', foto: '' }
-        ],
-        fotos: []
-      },
-      {
-        id: 5,
-        numero: 'ATD-005',
-        tag: 'KOM-PC210',
-        empresa: 'Infratech Construções',
-        responsavel_cliente: 'Henrique Castro',
-        responsavel_tecnico: '',
-        equipamento: 'Escavadeira Komatsu PC210',
-        placa: 'INF-2100',
-        horimetro: '5.340 h',
-        km: '',
-        localizacao: 'Baia 01',
-        estado: 'em_diagnostico',
-        estado_motivo: '',
-        prioridade: 'Alta',
-        queixa_inicial: 'Motor falhando em aceleração e perda de potência ao girar a lança.',
-        data_entrada: h(horasAtras(5)),
-        previsao_entrega: null,
-        data_conclusao: null,
-        data_entrega: null,
-        num_orcamento: '',
-        num_os: '',
-        num_nf: '',
-        servicos: [
-          {
-            id: 1,
-            titulo: 'Diagnóstico de falha no motor e sistema de giro',
-            descricao: 'Falha não identificada. Motor falhando sob carga.',
-            responsavel: 'Carlos (Chefe de Oficina)',
-            estado: 'em_diagnostico',
-            estado_motivo: '',
-            criado_em: h(horasAtras(5)),
-            atualizado_em: h(horasAtras(2)),
-            atividades: [
-              { id: 1, descricao: 'Leitura de códigos de falha via scan tool', responsavel: 'Carlos (Chefe de Oficina)', estado: 'concluida', estado_motivo: '', inicio: h(horasAtras(4)), atualizacao: h(horasAtras(3)), concluida: true, concluida_em: h(horasAtras(3)), historico: [{ acao: 'concluida', usuario: 'Carlos', data: h(horasAtras(3)), nota: 'Código E0238 identificado — sensor de posição da bomba' }] },
-              { id: 2, descricao: 'Verificar sensor de posição da bomba hidráulica', responsavel: 'Carlos (Chefe de Oficina)', estado: 'em_andamento', estado_motivo: '', inicio: h(horasAtras(2)), atualizacao: h(horasAtras(1)), concluida: false, concluida_em: null, historico: [] },
-              { id: 3, descricao: 'Verificar mangueiras e pressão do circuito de giro', responsavel: '', estado: 'pendente', estado_motivo: '', inicio: null, atualizacao: null, concluida: false, concluida_em: null, historico: [] }
-            ]
-          }
-        ],
-        dossie: [
-          { id: 1, autor: 'Carlos (Chefe de Oficina)', data: h(horasAtras(5)), texto: 'Máquina recebida. Iniciando diagnóstico elétrico e hidráulico.', foto: '' },
-          { id: 2, autor: 'Carlos (Chefe de Oficina)', data: h(horasAtras(3)), texto: 'Scan tool indicou código E0238. Investigando sensor da bomba.', foto: '' }
-        ],
-        fotos: []
-      }
-    ]
+    equipamentos: []
   };
 }
 
 // ────────────────────────────────────────────────────────────
-// Classe Storage
+// Classe Storage (Compatibilidade Híbrida JSON + GLPI DB)
 // ────────────────────────────────────────────────────────────
 
 class Storage extends EventEmitter {
@@ -322,6 +84,27 @@ class Storage extends EventEmitter {
     const dir = path.dirname(this.dataFilePath);
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
     if (!fs.existsSync(this.uploadsDir)) fs.mkdirSync(this.uploadsDir, { recursive: true });
+
+    // Inicialização da conexão com o banco de dados GLPI
+    setTimeout(async () => {
+      try {
+        const ok = await glpiDb.conectar();
+        if (ok) {
+          const tickets = await glpiDb.carregarAtendimentos();
+          if (tickets && tickets.length > 0) {
+            this.data.equipamentos = tickets;
+            this.save();
+          }
+          const compras = await glpiDb.carregarCompras();
+          if (compras && compras.length > 0) {
+            this.data.compras_diretas = compras;
+            this.save();
+          }
+        }
+      } catch (err) {
+        console.warn('[Storage] Conexão assíncrona ao GLPI DB:', err.message);
+      }
+    }, 200);
 
     if (fs.existsSync(this.dataFilePath)) {
       try {
@@ -372,6 +155,14 @@ class Storage extends EventEmitter {
     try {
       fs.writeFileSync(this.dataFilePath, JSON.stringify(this.data, null, 2), 'utf8');
       this.emit('change');
+      if (glpiDb && glpiDb.conectado && this.data) {
+        if (Array.isArray(this.data.equipamentos)) {
+          this.data.equipamentos.forEach(eq => glpiDb.salvarAtendimento(eq).catch(() => {}));
+        }
+        if (Array.isArray(this.data.compras_diretas)) {
+          this.data.compras_diretas.forEach(c => glpiDb.salvarCompra(c).catch(() => {}));
+        }
+      }
     } catch (err) {
       console.error('[Storage] Erro ao salvar:', err.message);
     }
