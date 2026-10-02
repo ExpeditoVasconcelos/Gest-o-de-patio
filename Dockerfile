@@ -32,9 +32,9 @@ ENV NODE_ENV=production \
     DATA_DIR=/app/api-gateway/data \
     UPLOADS_DIR=/app/web-app/uploads
 
-# Healthcheck do container
+# Healthcheck do container (usando 127.0.0.1 para evitar falha com IPv6 loopback no Alpine)
 HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://localhost:3000/api/jbc/v1/status || exit 1
+  CMD wget --no-verbose --tries=1 --spider http://127.0.0.1:3000/api/jbc/v1/status || exit 1
 
 # Comando de inicialização
 CMD ["node", "api-gateway/server.js"]
