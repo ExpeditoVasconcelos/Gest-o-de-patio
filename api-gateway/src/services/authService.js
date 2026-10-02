@@ -29,10 +29,27 @@ function obterOuCriarSecret() {
 
 const JWT_SECRET = obterOuCriarSecret();
 
-// Controle de tentativas de login contra força bruta
-const tentativasLogin = new Map(); // ip_username -> { falhas, bloqueadoAte }
-const MAX_FALHAS = 5;
-const TEMPO_BLOQUEIO_MS = 15 * 60 * 1000; // 15 minutos
+// Controle de tentativas de login contra força bruta (NIST CSF 2.0 - PR.AC / PR.PT)
+const MAX_FALHAS_IP = 10;
+const MAX_FALHAS_CONTA = 5;
+const TEMPO_BLOQUEIO_IP_MS = 15 * 60 * 1000;    // 15 minutos
+const TEMPO_BLOQUEIO_CONTA_MS = 15 * 60 * 1000; // 15 minutos
+
+const tentativasIp = new Map();     // ip -> { falhas, bloqueadoAte, primeiraTentativa }
+const tentativasConta = new Map();  // username -> { falhas, bloqueadoAte, primeiraTentativa }
+
+// Limpeza de memória periódica (mitigação de DoS contra estado em memória)
+setInterval(() => {
+  const agora = Date.now();
+  for (const [ip, info] of tentativasIp.entries()) {
+    if (info.bloqueadoAte && agora > info.bloqueadoAte + 60000) tentativasIp.delete(ip);
+    else if (!info.bloqueadoAte && agora - info.primeiraTentativa > 600000) tentativasIp.delete(ip);
+  }
+  for (const [u, info] of tentativasConta.entries()) {
+    if (info.bloqueadoAte && agora > info.bloqueadoAte + 60000) tentativasConta.delete(u);
+    else if (!info.bloqueadoAte && agora - info.primeiraTentativa > 600000) tentativasConta.delete(u);
+  }
+}, 10 * 60 * 1000).unref();
 
 // Blacklist de tokens revogados
 const tokensRevogados = new Set();
@@ -258,76 +275,129 @@ class AuthService {
     return seguro;
   }
 
-  // Rate Limiting para Login
+  // Rate Limiting e Prevenção de Força Bruta (NIST CSF PR.AC / PR.PT)
   verificarRateLimit(ip, username) {
-    const chave = `${ip}_${(username || '').toLowerCase()}`;
-    const info = tentativasLogin.get(chave);
-    if (!info) return { bloqueado: false };
+    const agora = Date.now();
+    const cleanUser = String(username || '').trim().toLowerCase();
 
-    if (info.bloqueadoAte && Date.now() < info.bloqueadoAte) {
-      const segundosRestantes = Math.ceil((info.bloqueadoAte - Date.now()) / 1000);
+    // 1. Verificação por IP
+    const infoIp = tentativasIp.get(ip);
+    if (infoIp && infoIp.bloqueadoAte && agora < infoIp.bloqueadoAte) {
+      const segundos = Math.ceil((infoIp.bloqueadoAte - agora) / 1000);
       return {
         bloqueado: true,
-        mensagem: `Muitas tentativas incorretas. Aguarde ${segundosRestantes} segundos para tentar novamente.`
+        tipo: 'IP',
+        segundos,
+        mensagem: `Acesso temporariamente bloqueado para este IP devido a múltiplas tentativas incorretas. Tente novamente em ${segundos}s.`
       };
     }
 
-    if (info.bloqueadoAte && Date.now() >= info.bloqueadoAte) {
-      tentativasLogin.delete(chave);
-      return { bloqueado: false };
+    // 2. Verificação por Conta (Proteção contra força bruta distribuída)
+    if (cleanUser && cleanUser !== 'invalid_format') {
+      const infoConta = tentativasConta.get(cleanUser);
+      if (infoConta && infoConta.bloqueadoAte && agora < infoConta.bloqueadoAte) {
+        const segundos = Math.ceil((infoConta.bloqueadoAte - agora) / 1000);
+        return {
+          bloqueado: true,
+          tipo: 'CONTA',
+          segundos,
+          mensagem: `Conta temporariamente suspensa por excesso de tentativas inválidas. Aguarde ${segundos}s.`
+        };
+      }
     }
 
     return { bloqueado: false };
   }
 
   registrarFalhaLogin(ip, username) {
-    const chave = `${ip}_${(username || '').toLowerCase()}`;
-    const info = tentativasLogin.get(chave) || { falhas: 0, bloqueadoAte: null };
-    info.falhas += 1;
-    if (info.falhas >= MAX_FALHAS) {
-      info.bloqueadoAte = Date.now() + TEMPO_BLOQUEIO_MS;
+    const agora = Date.now();
+    const cleanUser = String(username || '').trim().toLowerCase();
+
+    // Registro na camada de IP
+    const infoIp = tentativasIp.get(ip) || { falhas: 0, bloqueadoAte: null, primeiraTentativa: agora };
+    infoIp.falhas += 1;
+    if (infoIp.falhas >= MAX_FALHAS_IP) {
+      infoIp.bloqueadoAte = agora + TEMPO_BLOQUEIO_IP_MS;
+      console.warn(`[SEC-ALERT][BRUTE_FORCE_IP] IP ${ip} bloqueado por ${TEMPO_BLOQUEIO_IP_MS / 60000}m após ${infoIp.falhas} falhas consecutivas.`);
     }
-    tentativasLogin.set(chave, info);
+    tentativasIp.set(ip, infoIp);
+
+    // Registro na camada de Conta
+    if (cleanUser && cleanUser !== 'invalid_format') {
+      const infoConta = tentativasConta.get(cleanUser) || { falhas: 0, bloqueadoAte: null, primeiraTentativa: agora };
+      infoConta.falhas += 1;
+      if (infoConta.falhas >= MAX_FALHAS_CONTA) {
+        infoConta.bloqueadoAte = agora + TEMPO_BLOQUEIO_CONTA_MS;
+        console.warn(`[SEC-ALERT][ACCOUNT_LOCKOUT] Conta '${cleanUser}' bloqueada por ${TEMPO_BLOQUEIO_CONTA_MS / 60000}m após ${infoConta.falhas} falhas consecutivas.`);
+      }
+      tentativasConta.set(cleanUser, infoConta);
+    }
   }
 
   limparFalhaLogin(ip, username) {
-    const chave = `${ip}_${(username || '').toLowerCase()}`;
-    tentativasLogin.delete(chave);
+    const cleanUser = String(username || '').trim().toLowerCase();
+    tentativasIp.delete(ip);
+    if (cleanUser) {
+      tentativasConta.delete(cleanUser);
+    }
   }
 
-  // Autenticação com credenciais
+  // Autenticação com credenciais e hardening NIST CSF
   autenticar(username, senha, ip = '127.0.0.1') {
     if (!username || !senha) {
       return { success: false, status: 400, message: 'Usuário e senha são obrigatórios.' };
     }
 
-    const rate = this.verificarRateLimit(ip, username);
-    if (rate.bloqueado) {
-      return { success: false, status: 429, message: rate.mensagem };
+    const usrClean = String(username).trim();
+    if (usrClean.length < 2 || usrClean.length > 64 || !/^[a-zA-Z0-9_.-]+$/.test(usrClean)) {
+      this.registrarFalhaLogin(ip, 'invalid_format');
+      return { success: false, status: 400, message: 'Formato de usuário inválido.' };
     }
 
-    const usrClean = String(username).trim().toLowerCase();
-    const usuario = this.usuarios.find(u => u.username.toLowerCase() === usrClean);
+    if (typeof senha !== 'string' || senha.length > 128) {
+      this.registrarFalhaLogin(ip, usrClean);
+      return { success: false, status: 400, message: 'Formato de senha inválido.' };
+    }
 
+    const rate = this.verificarRateLimit(ip, usrClean);
+    if (rate.bloqueado) {
+      return { 
+        success: false, 
+        status: 429, 
+        message: rate.mensagem,
+        retryAfter: rate.segundos 
+      };
+    }
+
+    const usrLower = usrClean.toLowerCase();
+    const usuario = this.usuarios.find(u => u.username.toLowerCase() === usrLower);
+
+    // Mitigação contra Timing Attack (executa hash dummy para tempo de resposta idêntico)
     if (!usuario) {
-      this.registrarFalhaLogin(ip, username);
+      this.registrarFalhaLogin(ip, usrClean);
+      console.warn(`[SEC-AUDIT][AUTH_FAIL] Tentativa falha para usuário inexistente: '${usrClean}' — IP: ${ip}`);
+      verificarSenha(senha, 'deadbeefdeadbeefdeadbeefdeadbeef:deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef');
       return { success: false, status: 401, message: 'Usuário ou senha inválidos.' };
     }
 
     if (!usuario.ativo) {
+      console.warn(`[SEC-AUDIT][AUTH_BLOCKED] Tentativa de login em conta inativa: '${usrClean}' — IP: ${ip}`);
       return { success: false, status: 403, message: 'Conta de usuário desativada. Consulte o administrador.' };
     }
 
     const senhaCorreta = verificarSenha(senha, usuario.senha_hash);
     if (!senhaCorreta) {
-      this.registrarFalhaLogin(ip, username);
+      this.registrarFalhaLogin(ip, usrClean);
+      console.warn(`[SEC-AUDIT][AUTH_FAIL] Senha incorreta para usuário: '${usrClean}' — IP: ${ip}`);
       return { success: false, status: 401, message: 'Usuário ou senha inválidos.' };
     }
 
     // Sucesso no login
-    this.limparFalhaLogin(ip, username);
+    this.limparFalhaLogin(ip, usrClean);
     usuario.ultimo_login = new Date().toISOString();
     this.salvar();
+
+    console.log(`[SEC-AUDIT][AUTH_SUCCESS] Login efetuado com sucesso: '${usuario.username}' (${usuario.role}) — IP: ${ip}`);
 
     const token = gerarToken(usuario);
     return {

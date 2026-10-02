@@ -12,19 +12,62 @@ const authRoutes = require('./src/routes/auth');
 const usuariosRoutes = require('./src/routes/usuarios');
 
 const app = express();
+app.disable('x-powered-by');
 
-// Hardening de Cabeçalhos de Segurança HTTP
+// Hardening de Cabeçalhos de Segurança HTTP (NIST CSF PR.PT)
 app.use((req, res, next) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'SAMEORIGIN');
-  res.setHeader('X-XSS-Protection', '1; mode=block');
+  res.setHeader('X-XSS-Protection', '0');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Permissions-Policy', 'camera=(self), microphone=(), geolocation=(), payment=()');
+  res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
+  res.setHeader('Cross-Origin-Resource-Policy', 'same-origin');
   next();
 });
 
+// Rate Limiter Global para proteção contra DoS (NIST CSF PR.PT)
+const apiRequestCounts = new Map();
+const API_RATE_LIMIT = 240; // 240 requisições por minuto por IP
+const API_WINDOW_MS = 60 * 1000;
+
+setInterval(() => {
+  const agora = Date.now();
+  for (const [ip, data] of apiRequestCounts.entries()) {
+    if (agora > data.resetTime) apiRequestCounts.delete(ip);
+  }
+}, 60 * 1000).unref();
+
+function apiRateLimiter(req, res, next) {
+  const rawIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress || '127.0.0.1';
+  const ip = typeof rawIp === 'string' ? rawIp.split(',')[0].trim() : '127.0.0.1';
+  const agora = Date.now();
+
+  let entry = apiRequestCounts.get(ip);
+  if (!entry || agora > entry.resetTime) {
+    entry = { count: 1, resetTime: agora + API_WINDOW_MS };
+    apiRequestCounts.set(ip, entry);
+  } else {
+    entry.count += 1;
+  }
+
+  res.setHeader('X-RateLimit-Limit', API_RATE_LIMIT);
+  res.setHeader('X-RateLimit-Remaining', Math.max(0, API_RATE_LIMIT - entry.count));
+
+  if (entry.count > API_RATE_LIMIT) {
+    console.warn(`[SEC-ALERT][API_DOS] IP ${ip} ultrapassou o limite global de requisições da API (${entry.count}/${API_RATE_LIMIT}).`);
+    return res.status(429).json({
+      success: false,
+      message: 'Muitas requisições enviadas em curto intervalo. Aguarde alguns instantes.'
+    });
+  }
+
+  next();
+}
+
 app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Log em tempo real de conexões recebidas (diagnóstico de rede)
 app.use((req, res, next) => {
@@ -74,8 +117,9 @@ app.use(express.static(path.join(__dirname, '..', 'web-app'), {
   }
 }));
 
-// Rotas da API
+// Rotas da API com Rate Limiter ativo
 const apiRouter = express.Router();
+apiRouter.use(apiRateLimiter);
 apiRouter.use('/auth', authRoutes);
 apiRouter.use('/usuarios', usuariosRoutes);
 apiRouter.use('/atendimentos', atendimentosRoutes);
@@ -83,10 +127,10 @@ apiRouter.use('/mobile', mobileRoutes);
 apiRouter.use('/compras', comprasRoutes);
 
 // Aliases na raiz para total compatibilidade
-app.use('/auth', authRoutes);
-app.use('/usuarios', usuariosRoutes);
-app.use('/atendimentos', atendimentosRoutes);
-app.use('/compras', comprasRoutes);
+app.use('/auth', apiRateLimiter, authRoutes);
+app.use('/usuarios', apiRateLimiter, usuariosRoutes);
+app.use('/atendimentos', apiRateLimiter, atendimentosRoutes);
+app.use('/compras', apiRateLimiter, comprasRoutes);
 
 // Conectar pushUpdate do SSE ao módulo de compras
 comprasRoutes.setPushUpdate(mobileRoutes.pushUpdate);

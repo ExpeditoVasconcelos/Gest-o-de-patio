@@ -8,7 +8,7 @@ const { authService } = require('../services/authService');
 const { autenticar } = require('../middlewares/auth');
 
 // POST /auth/login
-router.post('/login', (req, res) => {
+router.post('/login', async (req, res) => {
   const username = req.body?.username;
   const senha = req.body?.senha || req.body?.password;
   const rawIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress || '127.0.0.1';
@@ -16,6 +16,14 @@ router.post('/login', (req, res) => {
 
   const resultado = authService.autenticar(username, senha, ip);
   if (!resultado.success) {
+    if (resultado.retryAfter) {
+      res.setHeader('Retry-After', String(resultado.retryAfter));
+    }
+
+    // Mitigação contra automação de força bruta (jitter de 300ms a 600ms)
+    const delay = 300 + Math.floor(Math.random() * 300);
+    await new Promise(r => setTimeout(r, delay));
+
     return res.status(resultado.status || 401).json({
       success: false,
       message: resultado.message

@@ -1071,22 +1071,23 @@ select.form-input-clean {
       <div id="mob-auth-error" style="display:none;padding:10px;border-radius:8px;background:var(--red-bg);color:var(--red);font-size:0.8rem;font-weight:600;line-height:1.3"></div>
       <div class="form-field">
         <label>Usuário</label>
-        <input type="text" class="form-input-clean" id="mob-login-user" placeholder="manuel, expedito ou seu usuário" required autocapitalize="none" autocomplete="username">
+        <input type="text" class="form-input-clean" id="mob-login-user" placeholder="Seu usuário de acesso" required autocapitalize="none" autocomplete="username" maxlength="64">
       </div>
       <div class="form-field">
         <label>Senha</label>
-        <input type="password" class="form-input-clean" id="mob-login-senha" placeholder="Sua senha de acesso" required autocomplete="current-password">
+        <div style="position:relative;display:flex;align-items:center">
+          <input type="password" class="form-input-clean" id="mob-login-senha" placeholder="Sua senha de acesso" required autocomplete="current-password" maxlength="128" style="padding-right:40px">
+          <button type="button" onclick="mobAlternarVisibilidadeSenha()" style="position:absolute;right:8px;background:none;border:none;color:var(--t3);cursor:pointer;padding:4px;display:flex;align-items:center" title="Mostrar/ocultar senha">
+            <svg id="mob-eye-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+        </div>
       </div>
       <button type="submit" class="btn-sheet-save" id="btn-mob-login-submit" style="width:100%;height:44px;margin-top:4px;font-size:0.95rem">
         Entrar no Sistema
       </button>
 
-      <div style="margin-top:4px;text-align:center">
-        <div style="font-size:0.7rem;color:var(--t3);margin-bottom:6px;font-weight:600">Acesso Rápido Admin:</div>
-        <div style="display:flex;gap:8px;justify-content:center">
-          <button type="button" onclick="mobPreencherLogin('manuel','jbc@2026')" class="btn-sheet-cancel" style="padding:4px 10px;font-size:0.72rem;border-radius:20px;background:var(--s2);color:var(--t1)">Manuel</button>
-          <button type="button" onclick="mobPreencherLogin('expedito','jbc@2026')" class="btn-sheet-cancel" style="padding:4px 10px;font-size:0.72rem;border-radius:20px;background:var(--s2);color:var(--t1)">Expedito</button>
-        </div>
+      <div style="margin-top:8px;text-align:center;font-size:0.72rem;color:var(--t3)">
+        Acesso monitorado e protegido contra tentativas indevidas.
       </div>
 
       <div style="display:flex;gap:8px;margin-top:6px;border-top:1px solid var(--line-subtle);padding-top:10px">
@@ -1532,11 +1533,17 @@ async function mobSubmeterLogin(e) {
   }
 }
 
-function mobPreencherLogin(u, s) {
-  const userInp = document.getElementById('mob-login-user');
+function mobAlternarVisibilidadeSenha() {
   const passInp = document.getElementById('mob-login-senha');
-  if (userInp) userInp.value = u;
-  if (passInp) passInp.value = s;
+  const icon = document.getElementById('mob-eye-icon');
+  if (!passInp) return;
+  if (passInp.type === 'password') {
+    passInp.type = 'text';
+    if (icon) icon.innerHTML = '<path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" y1="2" x2="22" y2="22"/>';
+  } else {
+    passInp.type = 'password';
+    if (icon) icon.innerHTML = '<path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/>';
+  }
 }
 
 async function mobFazerLogout() {
